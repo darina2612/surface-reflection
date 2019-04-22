@@ -1,0 +1,161 @@
+<html>
+	<head>
+		<title>My first three.js app</title>
+		<style>
+			body { margin: 0; }
+			canvas { width: 100%; height: 100% }
+		</style>
+	</head>
+	<body>
+		<script src="js/three.js"></script>
+		<script>
+			var scene = new THREE.Scene();
+			var camera = new THREE.PerspectiveCamera( 45, window.innerWidth/window.innerHeight, 1, 500 );
+            camera.position.set(0, 0, 100);
+            camera.lookAt(0, 0, 0);
+
+			var renderer = new THREE.WebGLRenderer({antialias : true});
+			renderer.setClearColor(0xEEEEEE);
+			renderer.setSize( window.innerWidth, window.innerHeight );
+			document.body.appendChild( renderer.domElement );
+
+			
+// 			var material = new THREE.LineBasicMaterial({ color: 0x0000ff });
+// 			
+// 			var geometry = new THREE.Geometry();
+//             geometry.vertices.push(new THREE.Vector3( -10, 0, 0) );
+//             geometry.vertices.push(new THREE.Vector3( -5, 15, 0 ) );
+//             geometry.vertices.push(new THREE.Vector3( 20, 15, 0) );
+//             geometry.vertices.push(new THREE.Vector3( 10, 0, 0) );
+// 			
+// 			var line = new THREE.Line( geometry, material );
+// 			
+// 			scene.add(line);
+// 			
+			function drawCubicBezier(controlPoints, color)
+			{
+                var curve = new THREE.CubicBezierCurve3(controlPoints[0], controlPoints[1], controlPoints[2], controlPoints[3]);
+                var points = curve.getPoints(50);
+                var geometry = new THREE.Geometry();
+
+                for(var i = 0; i < points.length; i++)
+                {
+                    geometry.vertices.push(points[i]);  
+                }
+            
+                var material = new THREE.LineBasicMaterial({ color : color });
+
+                var curveObject = new THREE.Line( geometry, material);
+            
+                scene.add(curveObject);
+            
+                renderer.render(scene, camera);
+            }
+            
+            function drawBezierSurface(controlPoints, bezierCurveDivisions, color, wireframe)
+            {
+				var basicBezierModel = [];  // 4 bezier curves calculated from bezier control points
+
+				// calculating basic bezier model (main 4 bezier curves)
+				for (var i = 0; i < controlPoints.length; i++)
+				{
+					var bezier = new THREE.CubicBezierCurve3(controlPoints[i][0],
+                                                             controlPoints[i][1],
+                                                             controlPoints[i][2],
+                                                             controlPoints[i][3]);
+            
+					basicBezierModel.push(bezier.getPoints(bezierCurveDivisions));
+				}
+
+
+				var bezierCurvesVertices = [];
+
+				// calculating full bezier model (50 bezier curves in one direction, each containing 50 vertices)
+				for (var i = 0; i <= bezierCurveDivisions; i++)
+				{
+					var bezier = new THREE.CubicBezierCurve3(basicBezierModel[0][i],
+                                                             basicBezierModel[1][i],
+                                                             basicBezierModel[2][i],
+                                                             basicBezierModel[3][i]);
+
+					bezierCurvesVertices = bezierCurvesVertices.concat(bezier.getPoints(bezierCurveDivisions));
+				}
+
+
+				// now we've got full bezier model, it's time to create bezier surface and add it to the scene
+				var bezierSurfaceVertices = bezierCurvesVertices;
+				var bezierSurfaceFaces = [];
+
+				// creating faces from vertices
+				var v1, v2, v2;  // vertex indices in bezierSurfaceVertices array
+				for (var i = 0; i < bezierCurveDivisions; i++)
+				{
+					for (var j=0; j < bezierCurveDivisions; j++)
+					{
+						v1 = i * (bezierCurveDivisions + 1) + j;
+						v2 = (i + 1) * (bezierCurveDivisions + 1) + j;
+						v3 = i * (bezierCurveDivisions + 1) + (j + 1);
+						bezierSurfaceFaces.push(new THREE.Face3(v1, v2, v3));
+						
+						v1 = (i + 1) * (bezierCurveDivisions + 1) + j;
+						v2 = (i + 1) * (bezierCurveDivisions + 1) + (j + 1);
+						v3 = i * (bezierCurveDivisions + 1) + (j + 1);
+						bezierSurfaceFaces.push(new THREE.Face3(v1, v2, v3));
+					}
+				}
+
+				var bezierSurfaceGeometry = new THREE.Geometry();
+				bezierSurfaceGeometry.vertices = bezierSurfaceVertices;
+				bezierSurfaceGeometry.faces = bezierSurfaceFaces;
+				bezierSurfaceGeometry.computeFaceNormals();
+				bezierSurfaceGeometry.computeVertexNormals();
+				var bezierSurfaceMaterial = new THREE.MeshLambertMaterial({color: color, wireframe: wireframe});
+				var bezierSurface = new THREE.Mesh(bezierSurfaceGeometry, bezierSurfaceMaterial);
+				bezierSurface.material.side = THREE.DoubleSide;
+				scene.add(bezierSurface);
+				
+				// all kinds of lights
+                var ambientLight = new THREE.AmbientLight(0x0c0c0c);
+                scene.add(ambientLight);
+
+                var spotLightBelow = new THREE.SpotLight(0xffffff);
+                spotLightBelow.position.set(20, -40, 20);
+                spotLightBelow.target = bezierSurface;
+                spotLightBelow.exponent = 5;
+                scene.add(spotLightBelow);
+
+                var spotLightAbove = new THREE.SpotLight(0xffffff);
+                spotLightAbove.position.set(20,40,20);
+                spotLightAbove.target = bezierSurface;
+                spotLightAbove.exponent = 3;
+                scene.add(spotLightAbove);
+                
+                renderer.render(scene, camera);
+			}
+			
+// 			drawCubicBezier([new THREE.Vector3( -10, 0, 0 ),
+//                             new THREE.Vector3( -5, 15, 0 ),
+//                             new THREE.Vector3( 20, 15, 0 ),
+//                             new THREE.Vector3( 10, 0, 0 )], 0xff0000);
+                            
+            drawBezierSurface([[new THREE.Vector3(-10, 10, 0),
+                                new THREE.Vector3(0, 7, 0),
+                                new THREE.Vector3(15, 3, 0),
+                                new THREE.Vector3(30, 8, 0)],
+                                [new THREE.Vector3(-10, 0, 10),
+                                new THREE.Vector3(-5, 15, 10),
+                                new THREE.Vector3(20, 10, 10),
+                                new THREE.Vector3(30, 5, 10)],
+                                [new THREE.Vector3(-10, 5, 20),
+                                new THREE.Vector3(-5,-10, 20),
+                                new THREE.Vector3(10, 10, 20),
+                                new THREE.Vector3(30, 0, 20)],
+                                [new THREE.Vector3(-10, 4, 30),
+                                new THREE.Vector3(-5, 8, 30),
+                                new THREE.Vector3(20, 6, 30),
+                                new THREE.Vector3(30, 4, 30)]], 50, 0xff0000, false);
+
+            
+		</script>
+	</body>
+</html>
