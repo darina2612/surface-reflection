@@ -160,24 +160,48 @@
                 renderer.render(scene, camera);
             }
                 
-            function drawControlMesh(contolPoints)
+            function drawControlMesh(contolPoints, pointsColor, linesColor)
             {
-                for(var i = 0; i < contolPoints.length; i++) {  // 4 control points in one direction
-                    for(var j = 0; j < controlPoints.length; j++) {  // 4 control points in another direction
-                            
+                var meshSize = contolPoints.length;
+                
+                for(var i = 0; i < meshSize; i++)
+                {
+                    for(var j = 0; j < meshSize; j++)
+                    {
                         var controlPointGeometry = new THREE.SphereGeometry(0.7, 10, 10);
                             
-                        var controlPointMaterial = new THREE.MeshLambertMaterial({color: 0xffff00});
+                        var controlPointMaterial = new THREE.MeshBasicMaterial({color: pointsColor});
                         var controlPoint = new THREE.Mesh(controlPointGeometry, controlPointMaterial);
                         controlPoint.name = + i.toString() + "-" + j.toString();
                         controlPoint.position.x = contolPoints[i][j].x;
                         controlPoint.position.y = contolPoints[i][j].y;
                         controlPoint.position.z = contolPoints[i][j].z;
                         scene.add(controlPoint);
+                        
+                        if(j > 0)
+                        {
+                            drawLine(contolPoints[i][j - 1], contolPoints[i][j], linesColor);
+                        }
+                        
+                        if(i > 0)
+                        {
+                            drawLine(contolPoints[i - 1][j], contolPoints[i][j], linesColor);
+                        }
                     }
                 }
-                    
-                renderer.render(scene, camera);
+            }
+            
+            function drawLine(p1, p2, color)
+            {
+                var geometry = new THREE.Geometry();
+                geometry.vertices.push(p1);
+                geometry.vertices.push(p2);
+                
+                var material = new THREE.LineBasicMaterial({color : color});
+                
+                var line = new THREE.Line(geometry, material);
+                
+                scene.add(line);
             }
                 
     // 			drawCubicBezier([new THREE.Vector3( -10, 0, 0 ),
@@ -203,7 +227,13 @@
                                 new THREE.Vector3(30, 4, 30)]];
                                     
             drawBezierSurface(controlPoints, 50, 0xff0000, false);
-            drawControlMesh(controlPoints);
+            var controlMeshColor = 0x000000;
+            drawControlMesh(controlPoints, controlMeshColor, controlMeshColor);
+            
+            function renderScene()
+            {
+				renderer.render(scene, camera);
+			}
         });
 		</script>
 	</body>
