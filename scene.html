@@ -16,10 +16,8 @@
 		$(document).ready(function()
 		{
             var scene = new THREE.Scene();
-            var camera = new THREE.PerspectiveCamera( 45, window.innerWidth/window.innerHeight, 1, 500 );
+            var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000 );
             var cameraControls = new THREE.OrbitControls(camera);
-            camera.position.set(0, 0, 100);
-            camera.lookAt(0, 0, 0);
 
             var renderer = new THREE.WebGLRenderer({antialias : true});
             renderer.setClearColor(0xEEEEEE);
@@ -59,6 +57,26 @@
     // 			
     // 			scene.add(line);
     // 			
+    
+            var controlPoints = [[new THREE.Vector3(-10, 10, 0),
+                                new THREE.Vector3(0, 7, 0),
+                                new THREE.Vector3(15, 3, 0),
+                                new THREE.Vector3(30, 8, 0)],
+                                [new THREE.Vector3(-10, 0, 10),
+                                new THREE.Vector3(-5, 15, 10),
+                                new THREE.Vector3(20, 10, 10),
+                                new THREE.Vector3(30, 5, 10)],
+                                [new THREE.Vector3(-10, 5, 20),
+                                new THREE.Vector3(-5,-10, 20),
+                                new THREE.Vector3(10, 10, 20),
+                                new THREE.Vector3(30, 0, 20)],
+                                [new THREE.Vector3(-10, 4, 30),
+                                new THREE.Vector3(-5, 8, 30),
+                                new THREE.Vector3(20, 6, 30),
+                                new THREE.Vector3(30, 4, 30)]];
+    
+            var controlPointsSpheres = [];
+            
             function drawCubicBezier(controlPoints, color)
             {
                 var curve = new THREE.CubicBezierCurve3(controlPoints[0], controlPoints[1], controlPoints[2], controlPoints[3]);
@@ -75,8 +93,6 @@
                 var curveObject = new THREE.Line( geometry, material);
                 
                 scene.add(curveObject);
-                
-                renderer.render(scene, camera);
             }
                 
             function drawBezierSurface(controlPoints, bezierCurveDivisions, color, wireframe)
@@ -105,8 +121,8 @@
                                                             basicBezierModel[2][i],
                                                             basicBezierModel[3][i]);
 
-                bezierCurvesVertices = bezierCurvesVertices.concat(bezier.getPoints(bezierCurveDivisions));
-            }
+                    bezierCurvesVertices = bezierCurvesVertices.concat(bezier.getPoints(bezierCurveDivisions));
+                }
 
 
                 // now we've got full bezier model, it's time to create bezier surface and add it to the scene
@@ -156,36 +172,53 @@
                 spotLightAbove.target = bezierSurface;
                 spotLightAbove.exponent = 3;
                 scene.add(spotLightAbove);
-                    
-                renderer.render(scene, camera);
             }
-                
-            function drawControlMesh(contolPoints, pointsColor, linesColor)
+            
+            function generateControlPointsSpheres(controlPoints, spheres, pointsColor)
             {
-                var meshSize = contolPoints.length;
+               var meshSize = controlPoints.length;
                 
                 for(var i = 0; i < meshSize; i++)
                 {
                     for(var j = 0; j < meshSize; j++)
                     {
-                        var controlPointGeometry = new THREE.SphereGeometry(0.7, 10, 10);
+                        var controlPointSphereGeometry = new THREE.SphereGeometry(0.7, 10, 10);
                             
-                        var controlPointMaterial = new THREE.MeshBasicMaterial({color: pointsColor});
-                        var controlPoint = new THREE.Mesh(controlPointGeometry, controlPointMaterial);
-                        controlPoint.name = + i.toString() + "-" + j.toString();
-                        controlPoint.position.x = contolPoints[i][j].x;
-                        controlPoint.position.y = contolPoints[i][j].y;
-                        controlPoint.position.z = contolPoints[i][j].z;
-                        scene.add(controlPoint);
+                        var controlSphereMaterial = new THREE.MeshBasicMaterial({color: pointsColor});
+                        var controlSphere = new THREE.Mesh(controlPointSphereGeometry, controlSphereMaterial);
+                        controlSphere.name = + i.toString() + "-" + j.toString();
+                        controlSphere.position.x = controlPoints[i][j].x;
+                        controlSphere.position.y = controlPoints[i][j].y;
+                        controlSphere.position.z = controlPoints[i][j].z;
+                        spheres.push(controlSphere)
+                    }
+                }
+            }
+                
+            function drawControlMesh(controlPoints, controlSpheres, pointsColor, linesColor)
+            {
+                console.log("drawControlMesh");
+                
+                controlSpheres = [];
+                
+                generateControlPointsSpheres(controlPoints, controlSpheres, pointsColor);
+                                
+                var meshSize = controlPoints.length;
+                
+                for(var i = 0; i < meshSize; i++)
+                {
+                    for(var j = 0; j < meshSize; j++)
+                    {
+                        scene.add(controlSpheres[i * meshSize + j]);
                         
                         if(j > 0)
                         {
-                            drawLine(contolPoints[i][j - 1], contolPoints[i][j], linesColor);
+                            drawLine(controlPoints[i][j - 1], controlPoints[i][j], linesColor);
                         }
                         
                         if(i > 0)
                         {
-                            drawLine(contolPoints[i - 1][j], contolPoints[i][j], linesColor);
+                            drawLine(controlPoints[i - 1][j], controlPoints[i][j], linesColor);
                         }
                     }
                 }
@@ -203,37 +236,92 @@
                 
                 scene.add(line);
             }
+            
+            document.addEventListener("mousedown", ontClick, true);  // done with pure javascript (without jquery because jquery doesn't support event capturing, which is essential if we want to avoid bugs with mousedown event, which is used for both rotation and placement of control points)
+			function ontClick(e)
+			{
+                console.log("mousedown");
+
+				var cursorPos = new THREE.Vector2();
+				var raycaster = new THREE.Raycaster();
+				
+				cursorPos.x = (e.clientX / renderer.domElement.width) * 2 - 1;
+				cursorPos.y = - (e.clientY / renderer.domElement.height) * 2 + 1;
+				raycaster.setFromCamera(cursorPos, camera);
+				
+				generateControlPointsSpheres(controlPoints, controlPointsSpheres, 0x000000);
+								
+				var intersectedControlSpheres = raycaster.intersectObjects(controlPointsSpheres);
+				
+				console.log("cursor : " + cursorPos.x + ", " + cursorPos.y);
+				
+				for(var i = 0; i < controlPointsSpheres.length; i ++)
+				{
+					console.log("sphere pos : " + controlPointsSpheres[i].position.x + ", " + controlPointsSpheres[i].position.y);
+
+				}
+				
+				for(var i = 0; i < controlPoints.length; i ++)
+				{
+                    for(var j = 0; j < controlPoints.length; j ++)
+                    {
+                        console.log("conrol point pos : " + controlPoints[i][j].x + ", " + controlPoints[i][j].y);
+                    }
+				}
+				
+				if(intersectedControlSpheres.length == 0)
+				{
+                    return;
+				}
+				
+                cameraControls.enabled = false;  // disabling camera rotation
                 
-    // 			drawCubicBezier([new THREE.Vector3( -10, 0, 0 ),
-    //                             new THREE.Vector3( -5, 15, 0 ),
-    //                             new THREE.Vector3( 20, 15, 0 ),
-    //                             new THREE.Vector3( 10, 0, 0 )], 0xff0000);
+                var selectedSphere = intersectedControlSpheres[0].object;
+                if(!selectedSphere.visible)
+                {
+                    return;
+                }
                 
-            var controlPoints = [[new THREE.Vector3(-10, 10, 0),
-                                new THREE.Vector3(0, 7, 0),
-                                new THREE.Vector3(15, 3, 0),
-                                new THREE.Vector3(30, 8, 0)],
-                                [new THREE.Vector3(-10, 0, 10),
-                                new THREE.Vector3(-5, 15, 10),
-                                new THREE.Vector3(20, 10, 10),
-                                new THREE.Vector3(30, 5, 10)],
-                                [new THREE.Vector3(-10, 5, 20),
-                                new THREE.Vector3(-5,-10, 20),
-                                new THREE.Vector3(10, 10, 20),
-                                new THREE.Vector3(30, 0, 20)],
-                                [new THREE.Vector3(-10, 4, 30),
-                                new THREE.Vector3(-5, 8, 30),
-                                new THREE.Vector3(20, 6, 30),
-                                new THREE.Vector3(30, 4, 30)]];
-                                    
+                renderScene();
+                var planeNormal = selectedSphere.position.clone().sub(camera.position);
+                var plane = new THREE.Plane();
+                plane.setFromNormalAndCoplanarPoint(planeNormal, selectedSphere.position);
+                
+                $(document).on("mousemove", function(e)
+                {
+                    console.log("mousemove");
+                    var mouseMove = new THREE.Vector3();
+                    mouseMove.x = (e.clientX / renderer.domElement.width) * 2 - 1;
+                    mouseMove.y = - (e.clientY / renderer.domElement.height) * 2 + 1;
+                    mouseMove.z = 1;
+                    mouseMove.unproject(camera);
+                    var ray = new THREE.Ray(camera.position, mouseMove.sub(camera.position).normalize());
+                    var intersection = ray.intersectPlane(plane);
+                    
+                    selectedSphere.position.set(intersection.x, intersection.y, intersection.z);
+                    var i = activeControlPoint.name.split("-");  // active control point index
+                    controlPoints[ i[0] ][ i[1] ] = new THREE.Vector3(intersection.x, intersection.y, intersection.z);
+                });
+                
+                $(document).on("mouseup", function(e)
+                {
+                    $(document).off("mousemove");
+                    $(document).off("mouseup");
+                    cameraControls.enabled = true;  // enabling camera controls again
+                });
+            }
+                    
             drawBezierSurface(controlPoints, 50, 0xff0000, false);
             var controlMeshColor = 0x000000;
-            drawControlMesh(controlPoints, controlMeshColor, controlMeshColor);
+            drawControlMesh(controlPoints, controlPointsSpheres, controlMeshColor, controlMeshColor);
             
             function renderScene()
             {
 				renderer.render(scene, camera);
 			}
+			
+			$("#WebGL-output").append(renderer.domElement);
+			renderScene();
         });
 		</script>
 	</body>
