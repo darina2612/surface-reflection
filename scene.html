@@ -22,10 +22,7 @@
             var renderer = new THREE.WebGLRenderer({antialias : true});
             renderer.setClearColor(0xEEEEEE);
             renderer.setSize( window.innerWidth, window.innerHeight );
-            document.body.appendChild( renderer.domElement );
                 
-            renderer.setClearColor(0xEEEEEE);
-            renderer.setSize(window.innerWidth, window.innerHeight);
             var axisHelper = new THREE.AxisHelper(20);
 
             $(window).on("resize", function()
@@ -110,7 +107,6 @@
                     basicBezierModel.push(bezier.getPoints(bezierCurveDivisions));
                 }
 
-
                 var bezierCurvesVertices = [];
 
                 // calculating full bezier model (50 bezier curves in one direction, each containing 50 vertices)
@@ -123,7 +119,6 @@
 
                     bezierCurvesVertices = bezierCurvesVertices.concat(bezier.getPoints(bezierCurveDivisions));
                 }
-
 
                 // now we've got full bezier model, it's time to create bezier surface and add it to the scene
                 var bezierSurfaceVertices = bezierCurvesVertices;
@@ -199,7 +194,7 @@
             {
                 console.log("drawControlMesh");
                 
-                controlSpheres = [];
+                controlSpheres.length = 0;
                 
                 generateControlPointsSpheres(controlPoints, controlSpheres, pointsColor);
                                 
@@ -237,8 +232,8 @@
                 scene.add(line);
             }
             
-            document.addEventListener("mousedown", ontClick, true);  // done with pure javascript (without jquery because jquery doesn't support event capturing, which is essential if we want to avoid bugs with mousedown event, which is used for both rotation and placement of control points)
-			function ontClick(e)
+            document.addEventListener("mousedown", onClick, true);  // done with pure javascript (without jquery because jquery doesn't support event capturing, which is essential if we want to avoid bugs with mousedown event, which is used for both rotation and placement of control points)
+			function onClick(e)
 			{
                 console.log("mousedown");
 
@@ -248,37 +243,21 @@
 				cursorPos.x = (e.clientX / renderer.domElement.width) * 2 - 1;
 				cursorPos.y = - (e.clientY / renderer.domElement.height) * 2 + 1;
 				raycaster.setFromCamera(cursorPos, camera);
+							
+				var intersectedObjects = raycaster.intersectObjects(controlPointsSpheres);
 				
-				generateControlPointsSpheres(controlPoints, controlPointsSpheres, 0x000000);
-								
-				var intersectedControlSpheres = raycaster.intersectObjects(controlPointsSpheres);
-				
-				console.log("cursor : " + cursorPos.x + ", " + cursorPos.y);
-				
-				for(var i = 0; i < controlPointsSpheres.length; i ++)
+				if(intersectedObjects.length == 0)
 				{
-					console.log("sphere pos : " + controlPointsSpheres[i].position.x + ", " + controlPointsSpheres[i].position.y);
-
-				}
-				
-				for(var i = 0; i < controlPoints.length; i ++)
-				{
-                    for(var j = 0; j < controlPoints.length; j ++)
-                    {
-                        console.log("conrol point pos : " + controlPoints[i][j].x + ", " + controlPoints[i][j].y);
-                    }
-				}
-				
-				if(intersectedControlSpheres.length == 0)
-				{
+                    console.log("no intersections");
                     return;
 				}
 				
                 cameraControls.enabled = false;  // disabling camera rotation
                 
-                var selectedSphere = intersectedControlSpheres[0].object;
+                var selectedSphere = intersectedObjects[0].object;
                 if(!selectedSphere.visible)
                 {
+                	console.log("intersected sphere invisible");
                     return;
                 }
                 
@@ -299,8 +278,9 @@
                     var intersection = ray.intersectPlane(plane);
                     
                     selectedSphere.position.set(intersection.x, intersection.y, intersection.z);
-                    var i = activeControlPoint.name.split("-");  // active control point index
+                    var i = selectedSphere.name.split("-");  // active control point index
                     controlPoints[ i[0] ][ i[1] ] = new THREE.Vector3(intersection.x, intersection.y, intersection.z);
+                    update();
                 });
                 
                 $(document).on("mouseup", function(e)
@@ -311,18 +291,23 @@
                 });
             }
                     
-            drawBezierSurface(controlPoints, 50, 0xff0000, false);
-            var controlMeshColor = 0x000000;
-            drawControlMesh(controlPoints, controlPointsSpheres, controlMeshColor, controlMeshColor);
-            
             function renderScene()
             {
 				renderer.render(scene, camera);
 			}
 			
+			function update()
+			{
+				drawBezierSurface(controlPoints, 50, 0xff0000, false);
+            	var controlMeshColor = 0x000000;
+            	drawControlMesh(controlPoints, controlPointsSpheres, controlMeshColor, controlMeshColor);
+                renderScene();
+			}
+			
 			$("#WebGL-output").append(renderer.domElement);
-			renderScene();
-        });
+
+			update();
+		});
 		</script>
 	</body>
 </html>
