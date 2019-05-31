@@ -41,20 +41,65 @@
             $(cameraControls).on("change", renderScene);
             cameraControls.target = new THREE.Vector3(20,0,15);
 
-                
-    // 			var material = new THREE.LineBasicMaterial({ color: 0x0000ff });
-    // 			
-    // 			var geometry = new THREE.Geometry();
-    //             geometry.vertices.push(new THREE.Vector3( -10, 0, 0) );
-    //             geometry.vertices.push(new THREE.Vector3( -5, 15, 0 ) );
-    //             geometry.vertices.push(new THREE.Vector3( 20, 15, 0) );
-    //             geometry.vertices.push(new THREE.Vector3( 10, 0, 0) );
-    // 			
-    // 			var line = new THREE.Line( geometry, material );
-    // 			
-    // 			scene.add(line);
-    // 			
-    
+            // interactive controls
+			var controls = new function()
+			{
+				this.color = 0xff0000;
+				this.x = 0.0;
+				this.y = 0.0;
+				this.z = 0.0;
+				this.showControlPoints = false;
+				this.wireframe = false;
+				this.bezierCurves = 51;
+				this.interactiveCamera = true;
+				this.axisHelper = false;
+			}
+			var gui = new dat.GUI({width:370});
+			gui.addColor(controls, "color").name("Color").onChange(function(c)
+			{
+				cameraControls.enabled = false;
+				update();
+			});
+			gui.add(controls, "wireframe").name("Wireframe mode").onChange(function(v) {
+				controls.wireframe = v;
+				renderScene();
+			});
+			gui.add(controls, "bezierCurves").min(10).max(100).step(1).name("Bezier Curves").onFinishChange(function(n) {
+					bezierCurveDivisions = n-1;  // interpolation will give additional 1 bezier curve
+					redrawBezierSurface();
+					renderScene();
+			});
+			gui.add(controls, "interactiveCamera").name("Interactive Camera").onChange(function(v) {
+				cameraControls.enabled = v;
+			});
+			gui.add(controls, "axisHelper").name("Show Axis Helper").onChange(function(v) {
+				if(v) scene.add(axisHelper);
+				else scene.remove(axisHelper);
+				renderScene();
+			});
+			var controlx, controly, controlz;
+			gui.add(controls, "showControlPoints").name("Show Control Points").onChange(function(visibility) {
+				if (visibility) {
+					controlx = gui.add(controls, "x").listen();
+					controly = gui.add(controls, "y").listen();
+					controlz = gui.add(controls, "z").listen();
+				} else {
+					gui.remove(controlx);
+					gui.remove(controly);
+					gui.remove(controlz);
+				}
+				updateActivePointControls();
+				setControlPointsVisibility(visibility);
+				renderScene();
+			});
+			
+			function updateActivePointControls() {
+				controls.x = activeControlPoint.position.x;
+				controls.y = activeControlPoint.position.y;
+				controls.z = activeControlPoint.position.z;
+				controls.x.toFixed(2);
+			}
+
             var controlPoints = [[new THREE.Vector3(-10, 10, 0),
                                 new THREE.Vector3(0, 7, 0),
                                 new THREE.Vector3(15, 3, 0),
@@ -302,8 +347,8 @@
 				{ 
     				scene.remove(scene.children[0]); 
 				}
-				
-				drawBezierSurface(controlPoints, 50, 0xff0000, false);
+
+				drawBezierSurface(controlPoints, 50, controls.color, false);
             	var controlMeshColor = 0x000000;
             	drawControlMesh(controlPoints, controlPointsSpheres, controlMeshColor, controlMeshColor);
                 renderScene();
