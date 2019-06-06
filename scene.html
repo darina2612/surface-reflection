@@ -49,11 +49,11 @@
 				this.y = 0.0;
 				this.z = 0.0;
 				this.showControlPoints = false;
-				this.wireframe = false;
 				this.bezierCurves = 51;
 				this.interactiveCamera = true;
 				this.axisHelper = false;
 			}
+
 			var gui = new dat.GUI({width:370});
 			gui.addColor(controls, "color").name("Color").onChange(function(c)
 			{
@@ -65,21 +65,34 @@
                     cameraControls.enabled = true;  // enabling camera controls again
                 });
 			});
-			gui.add(controls, "wireframe").name("Wireframe mode").onChange(function(v) {
-				controls.wireframe = v;
+			
+			var curvesController = gui.add(controls, "bezierCurves").min(10).max(100).step(1).name("Bezier Curves");
+			curvesController.onChange(function(n)
+			{
+				console.log("bezierCurves::onChange");
+				cameraControls.enabled = false;
+
+			});
+			curvesController.onFinishChange(function(n)
+			{
+				console.log("bezierCurves::onFinishChange");
+
+				bezierCurveDivisions = n-1;  // interpolation will give additional 1 bezier curve
+				update();
 				renderScene();
+				cameraControls.enabled = true;
+
 			});
-			gui.add(controls, "bezierCurves").min(10).max(100).step(1).name("Bezier Curves").onFinishChange(function(n) {
-					bezierCurveDivisions = n-1;  // interpolation will give additional 1 bezier curve
-					redrawBezierSurface();
-					renderScene();
-			});
+
 			gui.add(controls, "interactiveCamera").name("Interactive Camera").onChange(function(v) {
 				cameraControls.enabled = v;
 			});
+
 			gui.add(controls, "axisHelper").name("Show Axis Helper").onChange(function(v) {
-				if(v) scene.add(axisHelper);
-				else scene.remove(axisHelper);
+				if(v)
+					scene.add(axisHelper);
+				else
+					scene.remove(axisHelper);
 				renderScene();
 			});
 			var controlx, controly, controlz;
