@@ -59,6 +59,11 @@
 			{
 				cameraControls.enabled = false;
 				update();
+				$(document).on("mouseup", function(e)
+                {
+                    $(document).off("mouseup");
+                    cameraControls.enabled = true;  // enabling camera controls again
+                });
 			});
 			gui.add(controls, "wireframe").name("Wireframe mode").onChange(function(v) {
 				controls.wireframe = v;
