@@ -136,6 +136,9 @@
                                 new THREE.Vector3(30, 4, 30)]];
     
             var controlPointsSpheres = [];
+
+			var sourceCylinder;
+			var sourceCylinderPos = new THREE.Vector3(40, 35, -15);
             
             function drawCubicBezier(controlPoints, color)
             {
@@ -294,37 +297,26 @@
                 
                 scene.add(line);
             }
-            
-            document.addEventListener("mousedown", onClick, true);  // done with pure javascript (without jquery because jquery doesn't support event capturing, which is essential if we want to avoid bugs with mousedown event, which is used for both rotation and placement of control points)
-			function onClick(e)
-			{
-                console.log("mousedown");
 
-				var cursorPos = new THREE.Vector2();
-				var raycaster = new THREE.Raycaster();
-				
-				cursorPos.x = (e.clientX / renderer.domElement.width) * 2 - 1;
-				cursorPos.y = - (e.clientY / renderer.domElement.height) * 2 + 1;
-				raycaster.setFromCamera(cursorPos, camera);
-							
-				var intersectedObjects = raycaster.intersectObjects(controlPointsSpheres);
-				
-				if(intersectedObjects.length == 0)
-				{
-                    console.log("no intersections");
-                    return;
-				}
-				
-                cameraControls.enabled = false;  // disabling camera rotation
-                
-                var selectedSphere = intersectedObjects[0].object;
-                if(!selectedSphere.visible)
-                {
-                	console.log("intersected sphere invisible");
-                    return;
-                }
-                
-                renderScene();
+            function drawSourceCylinder()
+            {
+				var cylinderGeometry = new THREE.CylinderGeometry(5, 5, 20, 32);
+				cylinderGeometry.applyMatrix(new THREE.Matrix4().makeRotationX(Math.PI / 2));
+				var material = new THREE.MeshBasicMaterial({color: 0xffff00});
+				sourceCylinder = new THREE.Mesh(cylinderGeometry, material);
+				sourceCylinder.position.x = sourceCylinderPos.x;
+				sourceCylinder.position.y = sourceCylinderPos.y;
+				sourceCylinder.position.z = sourceCylinderPos.z;
+				scene.add(sourceCylinder); 
+				console.log("Cylinder pos : ");
+				console.log(sourceCylinderPos);
+			}
+            
+            function handleControlSphereClick(selectedSphere)
+            {
+            	console.log("Control point shpere clicked");
+
+            	renderScene();
                 var planeNormal = selectedSphere.position.clone().sub(camera.position);
                 var plane = new THREE.Plane();
                 plane.setFromNormalAndCoplanarPoint(planeNormal, selectedSphere.position);
@@ -341,10 +333,79 @@
                     var intersection = ray.intersectPlane(plane);
                     
                     selectedSphere.position.set(intersection.x, intersection.y, intersection.z);
-                    var i = selectedSphere.name.split("-");  // active control point index
+                    var i = selectedSphere.name.split("-"); 
                     controlPoints[ i[0] ][ i[1] ] = new THREE.Vector3(intersection.x, intersection.y, intersection.z);
                     update();
                 });
+            }
+
+			function handleSourceCylinderClick()
+            {
+            	console.log("Source cylinder clicked");
+
+                var planeNormal = sourceCylinder.position.clone().sub(camera.position);
+                var plane = new THREE.Plane();
+                plane.setFromNormalAndCoplanarPoint(planeNormal, sourceCylinder.position);
+                
+                $(document).on("mousemove", function(e)
+                {
+                    console.log("mousemove");
+                    var mouseMove = new THREE.Vector3();
+                    mouseMove.x = (e.clientX / renderer.domElement.width) * 2 - 1;
+                    mouseMove.y = - (e.clientY / renderer.domElement.height) * 2 + 1;
+                    mouseMove.z = 1;
+                    mouseMove.unproject(camera);
+                    var ray = new THREE.Ray(camera.position, mouseMove.sub(camera.position).normalize());
+                    var intersection = ray.intersectPlane(plane);
+                    sourceCylinderPos.x = intersection.x;
+                    sourceCylinderPos.y = intersection.y;
+                    sourceCylinderPos.z = intersection.z;
+                    update();
+                });
+            }
+
+            document.addEventListener("mousedown", onClick, true);  
+            function onClick(e)
+			{
+                console.log("mousedown");
+
+				var cursorPos = new THREE.Vector2();
+				var raycaster = new THREE.Raycaster();
+				
+				cursorPos.x = (e.clientX / renderer.domElement.width) * 2 - 1;
+				cursorPos.y = - (e.clientY / renderer.domElement.height) * 2 + 1;
+				raycaster.setFromCamera(cursorPos, camera);
+							
+				//check control spheres for intersecdtions
+				var intersectedObjects = raycaster.intersectObjects(controlPointsSpheres);
+				
+				if(intersectedObjects.length > 0)
+				{   
+	                cameraControls.enabled = false;  // disabling camera rotation
+	                
+	                var selectedSphere = intersectedObjects[0].object;
+	                if(!selectedSphere.visible)
+	                {
+	                	console.log("intersected sphere invisible");
+	                    return;
+	                }
+	                
+	                handleControlSphereClick(selectedSphere);
+	            }
+	            else
+	            {
+	            	var intersectedObjects = raycaster.intersectObjects([sourceCylinder]);
+	            	if(intersectedObjects.length > 0)
+					{   
+	                	cameraControls.enabled = false;  // disabling camera 
+	                	handleSourceCylinderClick();
+	            	}
+	            	else
+	            	{
+	            		console.log("No interactions");
+	            		return;
+	            	}
+	            }
                 
                 $(document).on("mouseup", function(e)
                 {
@@ -369,6 +430,7 @@
 				drawBezierSurface(controlPoints, 50, controls.color, false);
             	var controlMeshColor = 0x000000;
             	drawControlMesh(controlPoints, controlPointsSpheres, controlMeshColor, controlMeshColor);
+            	drawSourceCylinder();
                 renderScene();
 			}
 			
