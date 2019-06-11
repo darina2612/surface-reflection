@@ -48,7 +48,7 @@
 				this.x = 0.0;
 				this.y = 0.0;
 				this.z = 0.0;
-				this.showControlPoints = false;
+				this.showControlPoints = true;
 				this.bezierCurves = 51;
 				this.interactiveCamera = true;
 				this.axisHelper = false;
@@ -89,26 +89,12 @@
 			});
 
 			gui.add(controls, "axisHelper").name("Show Axis Helper").onChange(function(v) {
-				if(v)
-					scene.add(axisHelper);
-				else
-					scene.remove(axisHelper);
-				renderScene();
+				update();
 			});
 			var controlx, controly, controlz;
-			gui.add(controls, "showControlPoints").name("Show Control Points").onChange(function(visibility) {
-				if (visibility) {
-					controlx = gui.add(controls, "x").listen();
-					controly = gui.add(controls, "y").listen();
-					controlz = gui.add(controls, "z").listen();
-				} else {
-					gui.remove(controlx);
-					gui.remove(controly);
-					gui.remove(controlz);
-				}
-				updateActivePointControls();
-				setControlPointsVisibility(visibility);
-				renderScene();
+			gui.add(controls, "showControlPoints").name("Show Control Points").onChange(function(visibility)
+			{
+				update();
 			});
 			
 			function updateActivePointControls() {
@@ -302,7 +288,7 @@
             {
 				var cylinderGeometry = new THREE.CylinderGeometry(5, 5, 20, 32);
 				cylinderGeometry.applyMatrix(new THREE.Matrix4().makeRotationX(Math.PI / 2));
-				var material = new THREE.MeshBasicMaterial({color: 0xffff00});
+				var material = new THREE.MeshLambertMaterial({color: 0xffff00, emissive: 0xffff00, emissiveIntensity : 0.75});
 				sourceCylinder = new THREE.Mesh(cylinderGeometry, material);
 				sourceCylinder.position.x = sourceCylinderPos.x;
 				sourceCylinder.position.y = sourceCylinderPos.y;
@@ -429,8 +415,13 @@
 
 				drawBezierSurface(controlPoints, 50, controls.color, false);
             	var controlMeshColor = 0x000000;
-            	drawControlMesh(controlPoints, controlPointsSpheres, controlMeshColor, controlMeshColor);
+            	if(controls.showControlPoints)
+            		drawControlMesh(controlPoints, controlPointsSpheres, controlMeshColor, controlMeshColor);
             	drawSourceCylinder();
+
+            	if(controls.axisHelper)
+            		scene.add(axisHelper);
+
                 renderScene();
 			}
 			
