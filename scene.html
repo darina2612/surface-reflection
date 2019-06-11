@@ -30,7 +30,7 @@
                 camera.aspect = window.innerWidth / window.innerHeight;
                 camera.updateProjectionMatrix();
                 renderer.setSize(window.innerWidth, window.innerHeight);
-                renderScene();
+                update();
             });
 
             camera.position.x = -60;
@@ -97,34 +97,27 @@
 				update();
 			});
 			
-			function updateActivePointControls() {
-				controls.x = activeControlPoint.position.x;
-				controls.y = activeControlPoint.position.y;
-				controls.z = activeControlPoint.position.z;
-				controls.x.toFixed(2);
-			}
 
-            var controlPoints = [[new THREE.Vector3(-10, 10, 0),
-                                new THREE.Vector3(0, 7, 0),
-                                new THREE.Vector3(15, 3, 0),
-                                new THREE.Vector3(30, 8, 0)],
-                                [new THREE.Vector3(-10, 0, 10),
-                                new THREE.Vector3(-5, 15, 10),
-                                new THREE.Vector3(20, 10, 10),
-                                new THREE.Vector3(30, 5, 10)],
-                                [new THREE.Vector3(-10, 5, 20),
-                                new THREE.Vector3(-5,-10, 20),
-                                new THREE.Vector3(10, 10, 20),
-                                new THREE.Vector3(30, 0, 20)],
-                                [new THREE.Vector3(-10, 4, 30),
-                                new THREE.Vector3(-5, 8, 30),
-                                new THREE.Vector3(20, 6, 30),
-                                new THREE.Vector3(30, 4, 30)]];
-    
+            var controlPoints = [];
+
+            var meshSize = 4;
+            var x = -5;
+            var y = 10;
+            var z = -5;
+            var step = 15;
+            for(var i = 0; i < meshSize; i++)
+            {
+            	controlPoints.push([]);
+            	for(var j = 0; j < meshSize; j++)
+            	{
+            		controlPoints[i].push(new THREE.Vector3(x + j * step, y, z + i * step));
+            	}
+            }
+
             var controlPointsSpheres = [];
 
 			var sourceCylinder;
-			var sourceCylinderPos = new THREE.Vector3(40, 35, -15);
+			var sourceCylinderPos = new THREE.Vector3(40, 35, 17);
             
             function drawCubicBezier(controlPoints, color)
             {
@@ -144,7 +137,7 @@
                 scene.add(curveObject);
             }
                 
-            function drawBezierSurface(controlPoints, bezierCurveDivisions, color, wireframe)
+            function drawBezierSurface(controlPoints, bezierCurveDivisions, color)
             {
                 var basicBezierModel = [];  // 4 bezier curves calculated from bezier control points
 
@@ -199,35 +192,29 @@
                 bezierSurfaceGeometry.faces = bezierSurfaceFaces;
                 bezierSurfaceGeometry.computeFaceNormals();
                 bezierSurfaceGeometry.computeVertexNormals();
-                var bezierSurfaceMaterial = new THREE.MeshLambertMaterial({color: color, wireframe: wireframe});
+                var bezierSurfaceMaterial = new THREE.MeshLambertMaterial({color: color});
                 var bezierSurface = new THREE.Mesh(bezierSurfaceGeometry, bezierSurfaceMaterial);
                 bezierSurface.material.side = THREE.DoubleSide;
                 scene.add(bezierSurface);
-                    
-                // all kinds of lights
-                var ambientLight = new THREE.AmbientLight(0x0c0c0c);
-                scene.add(ambientLight);
 
-                var spotLightBelow = new THREE.SpotLight(0xffffff);
-                spotLightBelow.position.set(20, -40, 20);
-                spotLightBelow.target = bezierSurface;
-                spotLightBelow.exponent = 5;
-                scene.add(spotLightBelow);
+                var lightBelow = new THREE.PointLight(0xffffff);
+                lightBelow.position.set(20, -40, 20);
+                scene.add(lightBelow);
 
-                var spotLightAbove = new THREE.SpotLight(0xffffff);
-                spotLightAbove.position.set(20,40,20);
-                spotLightAbove.target = bezierSurface;
-                spotLightAbove.exponent = 3;
-                scene.add(spotLightAbove);
+                var lightAbove = new THREE.PointLight(0xffffff);
+                lightAbove.position.set(20, 40, 20);
+                lightAbove.target = bezierSurface;
+                scene.add(lightAbove);
             }
             
             function generateControlPointsSpheres(controlPoints, spheres, pointsColor)
             {
                var meshSize = controlPoints.length;
+               var rowSize = controlPoints[0].length;
                 
                 for(var i = 0; i < meshSize; i++)
                 {
-                    for(var j = 0; j < meshSize; j++)
+                    for(var j = 0; j < rowSize; j++)
                     {
                         var controlPointSphereGeometry = new THREE.SphereGeometry(0.7, 10, 10);
                             
@@ -251,10 +238,11 @@
                 generateControlPointsSpheres(controlPoints, controlSpheres, pointsColor);
                                 
                 var meshSize = controlPoints.length;
-                
+                var rowSize = controlPoints[0].length;
+
                 for(var i = 0; i < meshSize; i++)
                 {
-                    for(var j = 0; j < meshSize; j++)
+                    for(var j = 0; j < rowSize; j++)
                     {
                         scene.add(controlSpheres[i * meshSize + j]);
                         
