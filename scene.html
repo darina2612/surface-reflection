@@ -118,7 +118,7 @@
 
 			var sourceCylinder;
 			var sourceCylinderPos = new THREE.Vector3(40, 35, 17);
-            
+			
             function drawCubicBezier(controlPoints, color)
             {
                 var curve = new THREE.CubicBezierCurve3(controlPoints[0], controlPoints[1], controlPoints[2], controlPoints[3]);
@@ -196,6 +196,44 @@
                 var bezierSurface = new THREE.Mesh(bezierSurfaceGeometry, bezierSurfaceMaterial);
                 bezierSurface.material.side = THREE.DoubleSide;
                 scene.add(bezierSurface);
+
+                //distance surface
+                var sourceDir = new THREE.Vector3(40, 35, 0);
+                var sourcePoint = new THREE.Vector3(40, 35, 7);
+                var distanceSurfaceVertices = new Array(bezierSurfaceVertices.length);
+
+                var distaceSurfaceGeometry = new THREE.Geometry();
+                distaceSurfaceGeometry.faces = bezierSurfaceFaces; //faces are the same, only vertex' values will change
+                bezierSurfaceFaces.forEach(function(face, index, array)
+                {
+                	function f(vertexIndex, faceVertexIndex)
+                	{
+						if(typeof distanceSurfaceVertices[vertexIndex] === "undefined")
+						{
+							var bxn = new THREE.Vector3();
+							bxn.crossVectors(sourceDir, face.vertexNormals[faceVertexIndex]);
+
+							var qa = new THREE.Vector3();
+							qa.subVectors(sourcePoint, bezierSurfaceVertices[vertexIndex]);
+
+							distanceSurfaceVertices[vertexIndex] = new THREE.Vector3(bezierSurfaceVertices[vertexIndex].x,
+																			   		 bezierSurfaceVertices[vertexIndex].y,
+																			   		 bxn.dot(qa));
+						}
+					}
+
+					f(face.a, 0);
+					f(face.b, 1);
+					f(face.c, 2);
+                });
+
+                distaceSurfaceGeometry.vertices = distanceSurfaceVertices;
+                distaceSurfaceGeometry.computeFaceNormals();
+                distaceSurfaceGeometry.computeVertexNormals();
+                var distaceSurfaceMaterial = new THREE.MeshLambertMaterial({color: 0x0000ff});
+                var distaceSurface = new THREE.Mesh(distaceSurfaceGeometry, distaceSurfaceMaterial);
+                distaceSurface.material.side = THREE.DoubleSide;
+                //scene.add(distaceSurface);
 
                 var lightBelow = new THREE.PointLight(0xffffff);
                 lightBelow.position.set(20, -40, 20);
@@ -281,9 +319,7 @@
 				sourceCylinder.position.x = sourceCylinderPos.x;
 				sourceCylinder.position.y = sourceCylinderPos.y;
 				sourceCylinder.position.z = sourceCylinderPos.z;
-				scene.add(sourceCylinder); 
-				console.log("Cylinder pos : ");
-				console.log(sourceCylinderPos);
+				scene.add(sourceCylinder);
 			}
             
             function handleControlSphereClick(selectedSphere)
