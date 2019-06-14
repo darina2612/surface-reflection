@@ -52,6 +52,7 @@
 				this.bezierCurves = 51;
 				this.interactiveCamera = true;
 				this.axisHelper = false;
+				this.asWireframe = false;
 			}
 
 			var gui = new dat.GUI({width:370});
@@ -93,6 +94,10 @@
 			});
 			var controlx, controly, controlz;
 			gui.add(controls, "showControlPoints").name("Show Control Points").onChange(function(visibility)
+			{
+				update();
+			});
+			gui.add(controls, "asWireframe").name("Vizualize as Wireframe").onChange(function(v)
 			{
 				update();
 			});
@@ -192,18 +197,23 @@
                 bezierSurfaceGeometry.faces = bezierSurfaceFaces;
                 bezierSurfaceGeometry.computeFaceNormals();
                 bezierSurfaceGeometry.computeVertexNormals();
-                var bezierSurfaceMaterial = new THREE.MeshLambertMaterial({color: color});
+                var bezierSurfaceMaterial = new THREE.MeshLambertMaterial({color: color, wireframe: controls.asWireframe});
                 var bezierSurface = new THREE.Mesh(bezierSurfaceGeometry, bezierSurfaceMaterial);
                 bezierSurface.material.side = THREE.DoubleSide;
                 scene.add(bezierSurface);
 
                 //distance surface
-                var sourceDir = new THREE.Vector3(40, 35, 0);
-                var sourcePoint = new THREE.Vector3(40, 35, 7);
+                var sourcePoint = sourceCylinderPos.clone();
+                sourcePoint.z -= sourceCylinder.geometry.parameters.height / 2;
+                var sourceEndPoint = sourceCylinderPos.clone();
+                sourceEndPoint.z += sourceCylinder.geometry.parameters.height / 2;
+                var sourceDir = new THREE.Vector3();
+                sourceDir.subVectors(sourceEndPoint, sourcePoint);
+
                 var distanceSurfaceVertices = new Array(bezierSurfaceVertices.length);
 
                 var distaceSurfaceGeometry = new THREE.Geometry();
-                distaceSurfaceGeometry.faces = bezierSurfaceFaces; //faces are the same, only vertex' values will change
+                
                 bezierSurfaceFaces.forEach(function(face, index, array)
                 {
                 	function f(vertexIndex, faceVertexIndex)
@@ -218,22 +228,27 @@
 
 							distanceSurfaceVertices[vertexIndex] = new THREE.Vector3(bezierSurfaceVertices[vertexIndex].x,
 																			   		 bezierSurfaceVertices[vertexIndex].y,
-																			   		 bxn.dot(qa));
+																			   		 bezierSurfaceVertices[vertexIndex].y + bxn.dot(qa));
 						}
 					}
 
 					f(face.a, 0);
 					f(face.b, 1);
 					f(face.c, 2);
+
+					distaceSurfaceGeometry.faces.push(face.clone());
                 });
 
                 distaceSurfaceGeometry.vertices = distanceSurfaceVertices;
                 distaceSurfaceGeometry.computeFaceNormals();
                 distaceSurfaceGeometry.computeVertexNormals();
-                var distaceSurfaceMaterial = new THREE.MeshLambertMaterial({color: 0x0000ff});
+                var distaceSurfaceMaterial = new THREE.MeshLambertMaterial({color: 0x0000ff, wireframe: controls.asWireframe});
                 var distaceSurface = new THREE.Mesh(distaceSurfaceGeometry, distaceSurfaceMaterial);
                 distaceSurface.material.side = THREE.DoubleSide;
                 //scene.add(distaceSurface);
+
+                // scene.add(createSphere(sourcePoint, 0x00ff00));
+                // scene.add(createSphere(sourceEndPoint, 0x00ff00));
 
                 var lightBelow = new THREE.PointLight(0xffffff);
                 lightBelow.position.set(20, -40, 20);
@@ -244,6 +259,20 @@
                 lightAbove.target = bezierSurface;
                 scene.add(lightAbove);
             }
+
+            function createSphere(pos, color, name = "")
+            {
+            	var sphereGeometry = new THREE.SphereGeometry(0.7, 10, 10);
+                            
+	            var sphereMaterial = new THREE.MeshBasicMaterial({color: color});
+	            var sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+	            sphere.name = name;
+	            sphere.position.x = pos.x;
+	            sphere.position.y = pos.y;
+	            sphere.position.z = pos.z;
+
+	            return sphere;
+	        }
             
             function generateControlPointsSpheres(controlPoints, spheres, pointsColor)
             {
@@ -254,15 +283,7 @@
                 {
                     for(var j = 0; j < rowSize; j++)
                     {
-                        var controlPointSphereGeometry = new THREE.SphereGeometry(0.7, 10, 10);
-                            
-                        var controlSphereMaterial = new THREE.MeshBasicMaterial({color: pointsColor});
-                        var controlSphere = new THREE.Mesh(controlPointSphereGeometry, controlSphereMaterial);
-                        controlSphere.name = + i.toString() + "-" + j.toString();
-                        controlSphere.position.x = controlPoints[i][j].x;
-                        controlSphere.position.y = controlPoints[i][j].y;
-                        controlSphere.position.z = controlPoints[i][j].z;
-                        spheres.push(controlSphere)
+                        spheres.push(createSphere(controlPoints[i][j], pointsColor, i.toString() + "-" + j.toString()));
                     }
                 }
             }
@@ -367,9 +388,7 @@
                     mouseMove.unproject(camera);
                     var ray = new THREE.Ray(camera.position, mouseMove.sub(camera.position).normalize());
                     var intersection = ray.intersectPlane(plane);
-                    sourceCylinderPos.x = intersection.x;
-                    sourceCylinderPos.y = intersection.y;
-                    sourceCylinderPos.z = intersection.z;
+                    sourceCylinderPos = intersection.clone();
                     update();
                 });
             }
@@ -437,11 +456,12 @@
     				scene.remove(scene.children[0]); 
 				}
 
+				drawSourceCylinder();
+
 				drawBezierSurface(controlPoints, 50, controls.color, false);
             	var controlMeshColor = 0x000000;
             	if(controls.showControlPoints)
             		drawControlMesh(controlPoints, controlPointsSpheres, controlMeshColor, controlMeshColor);
-            	drawSourceCylinder();
 
             	if(controls.axisHelper)
             		scene.add(axisHelper);
