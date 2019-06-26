@@ -107,7 +107,7 @@
 
             var meshSize = 4;
             var x = -5;
-            var y = 10;
+            var y = 0;
             var z = -5;
             var step = 15;
             for(var i = 0; i < meshSize; i++)
@@ -123,6 +123,8 @@
 
 			var sourceCylinder;
 			var sourceCylinderPos = new THREE.Vector3(40, 35, 17);
+
+			var uvSurfaceVertices = [];
 			
             function drawCubicBezier(controlPoints, color)
             {
@@ -163,7 +165,7 @@
                 for (var i = 0; i <= bezierCurveDivisions; i++)
                 {
                     var bezier = new THREE.CubicBezierCurve3(basicBezierModel[0][i],
-                                                            basicBezierModel[1][i],
+                                                           	basicBezierModel[1][i],
                                                             basicBezierModel[2][i],
                                                             basicBezierModel[3][i]);
 
@@ -173,6 +175,13 @@
                 // now we've got full bezier model, it's time to create bezier surface and add it to the scene
                 var bezierSurfaceVertices = bezierCurvesVertices;
                 var bezierSurfaceFaces = [];
+
+                var initUvSurfaceVertices = (uvSurfaceVertices.length == 0);
+                if(initUvSurfaceVertices)
+                	bezierSurfaceVertices.forEach(function(item, index, array)
+                	{
+                		uvSurfaceVertices.push(item.clone());
+               	 	});
 
                 // creating faces from vertices
                 var v1, v2, v2;  // vertex indices in bezierSurfaceVertices array
@@ -214,6 +223,7 @@
 
                 var distaceSurfaceGeometry = new THREE.Geometry();
                 
+
                 bezierSurfaceFaces.forEach(function(face, index, array)
                 {
                 	function f(vertexIndex, faceVertexIndex)
@@ -226,17 +236,20 @@
 							var qa = new THREE.Vector3();
 							qa.subVectors(sourcePoint, bezierSurfaceVertices[vertexIndex]);
 
-							distanceSurfaceVertices[vertexIndex] = new THREE.Vector3(bezierSurfaceVertices[vertexIndex].x,
-																			   		 bezierSurfaceVertices[vertexIndex].y,
-																			   		 bezierSurfaceVertices[vertexIndex].y + bxn.dot(qa));
+							var d = bxn.dot(qa);
+
+							distanceSurfaceVertices[vertexIndex] = new THREE.Vector3(uvSurfaceVertices[vertexIndex].x,
+																			   		 d,
+																			   		 uvSurfaceVertices[vertexIndex].z);
 						}
 					}
 
-					f(face.a, 0);
-					f(face.b, 1);
-					f(face.c, 2);
+					var faceCopy = face.clone();
+					f(faceCopy.a, 0);
+					f(faceCopy.b, 1);
+					f(faceCopy.c, 2);
 
-					distaceSurfaceGeometry.faces.push(face.clone());
+					distaceSurfaceGeometry.faces.push(faceCopy);
                 });
 
                 distaceSurfaceGeometry.vertices = distanceSurfaceVertices;
