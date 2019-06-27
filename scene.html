@@ -53,6 +53,7 @@
 				this.interactiveCamera = true;
 				this.axisHelper = false;
 				this.asWireframe = false;
+				this.drawDebugElements = false;
 			}
 
 			var gui = new dat.GUI({width:370});
@@ -219,6 +220,13 @@
                 var sourceDir = new THREE.Vector3();
                 sourceDir.subVectors(sourceEndPoint, sourcePoint);
 
+				if(controls.drawDebugElements)
+				{
+    	            var arrowHelper = new THREE.ArrowHelper(sourceDir, sourcePoint, sourceDir.length(), 0xff0000);
+					scene.add(arrowHelper);
+				}
+
+
                 var distanceSurfaceVertices = new Array(bezierSurfaceVertices.length);
 
                 var distaceSurfaceGeometry = new THREE.Geometry();
@@ -236,10 +244,10 @@
 							var qa = new THREE.Vector3();
 							qa.subVectors(sourcePoint, bezierSurfaceVertices[vertexIndex]);
 
-							var d = bxn.dot(qa);
+							var d = bxn.dot(qa) / bxn.length();
 
 							distanceSurfaceVertices[vertexIndex] = new THREE.Vector3(uvSurfaceVertices[vertexIndex].x,
-																			   		 d,
+																			   		 y + d,
 																			   		 uvSurfaceVertices[vertexIndex].z);
 						}
 					}
@@ -258,10 +266,13 @@
                 var distaceSurfaceMaterial = new THREE.MeshLambertMaterial({color: 0x0000ff, wireframe: controls.asWireframe});
                 var distaceSurface = new THREE.Mesh(distaceSurfaceGeometry, distaceSurfaceMaterial);
                 distaceSurface.material.side = THREE.DoubleSide;
-                //scene.add(distaceSurface);
+                scene.add(distaceSurface);
 
-                // scene.add(createSphere(sourcePoint, 0x00ff00));
-                // scene.add(createSphere(sourceEndPoint, 0x00ff00));
+			if(controls.drawDebugElements)
+			{
+                scene.add(createSphere(sourcePoint, 0x00ff00));
+                scene.add(createSphere(sourceEndPoint, 0x00ff00));
+            }
 
                 var lightBelow = new THREE.PointLight(0xffffff);
                 lightBelow.position.set(20, -40, 20);
@@ -346,9 +357,14 @@
 
             function drawSourceCylinder()
             {
+
 				var cylinderGeometry = new THREE.CylinderGeometry(5, 5, 20, 32);
 				cylinderGeometry.applyMatrix(new THREE.Matrix4().makeRotationX(Math.PI / 2));
-				var material = new THREE.MeshLambertMaterial({color: 0xffff00, emissive: 0xffff00, emissiveIntensity : 0.75});
+				var opacity = 1.0;
+				if(controls.drawDebugElements)
+					opacity = 0.5;
+				var material = new THREE.MeshLambertMaterial({color: 0xffff00, emissive: 0xffff00, transparent : true,
+															  emissiveIntensity : 0.75, opacity : opacity});
 				sourceCylinder = new THREE.Mesh(cylinderGeometry, material);
 				sourceCylinder.position.x = sourceCylinderPos.x;
 				sourceCylinder.position.y = sourceCylinderPos.y;
@@ -456,7 +472,20 @@
                     cameraControls.enabled = true;  // enabling camera controls again
                 });
             }
-                    
+
+            
+            document.addEventListener("keydown", onKeypress);
+            function onKeypress(e)
+            {
+            	console.log("Key pressed : " + e.code);
+
+            	if(e.code == "Space")
+            	{
+            		controls.drawDebugElements = !controls.drawDebugElements;
+            		update();
+            	}
+            }
+
             function renderScene()
             {
 				renderer.render(scene, camera);
