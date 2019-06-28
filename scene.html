@@ -79,11 +79,9 @@
 			{
 				console.log("bezierCurves::onFinishChange");
 
-				bezierCurveDivisions = n-1;  // interpolation will give additional 1 bezier curve
+				cameraControls.enabled = true;
 				update();
 				renderScene();
-				cameraControls.enabled = true;
-
 			});
 
 			gui.add(controls, "interactiveCamera").name("Interactive Camera").onChange(function(v) {
@@ -104,6 +102,7 @@
 			});
 			
 
+			var bezierCurveDivisions = 50;
             var controlPoints = [];
 
             var meshSize = 4;
@@ -184,21 +183,43 @@
                 		uvSurfaceVertices.push(item.clone());
                	 	});
 
+                class EdgeInfo
+                {
+ 
+                	constructor(vBeginIndex = -1, vEndIndex = -1, face1Index = -1, face2Index = -1)
+                	{
+                		this.vBeginIndex = vBeginIndex;
+                		this.vEndIndex = vEndIndex;
+                		this.face1Index = face1Index;
+                		this.face2Index = face2Index;
+                	}
+                }
+
+                var edgesInfo = [];
+
                 // creating faces from vertices
+                var currentFaceIndex = 0;
                 var v1, v2, v2;  // vertex indices in bezierSurfaceVertices array
                 for (var i = 0; i < bezierCurveDivisions; i++)
                 {
                     for (var j=0; j < bezierCurveDivisions; j++)
                     {
                         v1 = i * (bezierCurveDivisions + 1) + j;
-                        v2 = (i + 1) * (bezierCurveDivisions + 1) + j;
-                        v3 = i * (bezierCurveDivisions + 1) + (j + 1);
+                        v2 = (i + 1) * (bezierCurveDivisions + 1) + j; //aa
+                        v3 = i * (bezierCurveDivisions + 1) + (j + 1); //bb
                         bezierSurfaceFaces.push(new THREE.Face3(v1, v2, v3));
+
+                        edgesInfo.push(new EdgeInfo(v1, v2));
+                        edgesInfo.push(new EdgeInfo(v2, v3, currentFaceIndex, currentFaceIndex + 1));
+                        edgesInfo.push(new EdgeInfo(v3, v1));
                             
-                        v1 = (i + 1) * (bezierCurveDivisions + 1) + j;
+                        v1 = (i + 1) * (bezierCurveDivisions + 1) + j; //aa
                         v2 = (i + 1) * (bezierCurveDivisions + 1) + (j + 1);
-                        v3 = i * (bezierCurveDivisions + 1) + (j + 1);
+                        v3 = i * (bezierCurveDivisions + 1) + (j + 1);//bb
                         bezierSurfaceFaces.push(new THREE.Face3(v1, v2, v3));
+                        edgesInfo.push(new EdgeInfo(v1, v2));
+                        edgesInfo.push(new EdgeInfo(v2, v3));
+                        edgesInfo.push(new EdgeInfo(v3, v1, currentFaceIndex - 1, currentFaceIndex));
                     }
                 }
 
@@ -500,7 +521,7 @@
 
 				drawSourceCylinder();
 
-				drawBezierSurface(controlPoints, 50, controls.color, false);
+				drawBezierSurface(controlPoints, controls.bezierCurves - 1, controls.color, false);
             	var controlMeshColor = 0x000000;
             	if(controls.showControlPoints)
             		drawControlMesh(controlPoints, controlPointsSpheres, controlMeshColor, controlMeshColor);
