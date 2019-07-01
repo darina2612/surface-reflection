@@ -53,6 +53,7 @@
 				this.interactiveCamera = true;
 				this.axisHelper = false;
 				this.asWireframe = false;
+				this.drawAuxSurface = true;
 				this.drawDebugElements = false;
 			}
 
@@ -100,6 +101,10 @@
 			{
 				update();
 			});
+			gui.add(controls, "drawAuxSurface").name("Draw aux surface").onChange(function(v)
+			{
+				update();
+			});
 			
 
 			var bezierCurveDivisions = 50;
@@ -125,6 +130,32 @@
 			var sourceCylinderPos = new THREE.Vector3(40, 35, 17);
 
 			var uvSurfaceVertices = [];
+
+			function checkLinePlaneIntersection(planeNormal, lineStart, lineEnd)
+			{
+				var v = new THREE.Vector3();
+				v.subVectors(lineEnd, lineStart);
+
+				return v.dot(planeNormal) != 0;
+			}
+
+			function getLinePlaneIntersectionPoint(planeNormal, planePoint, lineStart, lineEnd)
+			{
+				if(!checkLinePlaneIntersection(planeNormal, lineStart, lineEnd))
+					return;
+
+				var v1p0 =  new THREE.Vector3();
+				v1p0.subVectors(planePoint, lineStart);
+
+				var v1v2 =  new THREE.Vector3();
+				v1v2.subVectors(lineEnd, lineStart);
+				var d = v1p0.dot(planeNormal) / v1v2.dot(planeNormal);
+
+				var intersectionPoint = new THREE.Vector3();
+				intersectionPoint.addScaledVector(v1v2, d);
+				intersectionPoint.add(lineStart);
+
+			}
 			
             function drawCubicBezier(controlPoints, color)
             {
@@ -186,12 +217,24 @@
                 class EdgeInfo
                 {
  
-                	constructor(vBeginIndex = -1, vEndIndex = -1, face1Index = -1, face2Index = -1)
+                	constructor(vBeginIndex = -1, vEndIndex = -1, face1Index = -1, face2Index = -1, isdt = 0)
                 	{
                 		this.vBeginIndex = vBeginIndex;
                 		this.vEndIndex = vEndIndex;
                 		this.face1Index = face1Index;
                 		this.face2Index = face2Index;
+                		this.isdt = isdt;
+                	}
+                }
+
+                class IntersectionInfo
+                {
+ 
+                	constructor(u, v, edgeIndex)
+                	{
+                		this.u = u;
+                		this.v = v;
+                		this.edgeIndex = edgeIndex;
                 	}
                 }
 
@@ -205,21 +248,24 @@
                     for (var j=0; j < bezierCurveDivisions; j++)
                     {
                         v1 = i * (bezierCurveDivisions + 1) + j;
-                        v2 = (i + 1) * (bezierCurveDivisions + 1) + j; //aa
-                        v3 = i * (bezierCurveDivisions + 1) + (j + 1); //bb
+                        v2 = (i + 1) * (bezierCurveDivisions + 1) + j; 
+                        v3 = i * (bezierCurveDivisions + 1) + (j + 1); 
                         bezierSurfaceFaces.push(new THREE.Face3(v1, v2, v3));
 
-                        edgesInfo.push(new EdgeInfo(v1, v2));
-                        edgesInfo.push(new EdgeInfo(v2, v3, currentFaceIndex, currentFaceIndex + 1));
-                        edgesInfo.push(new EdgeInfo(v3, v1));
+                        edgesInfo.push(new EdgeInfo(v1, v2, currentFaceIndex - 1, currentFaceIndex)); //e1
+                        edgesInfo.push(new EdgeInfo(v2, v3, currentFaceIndex, currentFaceIndex + 1)); //e2
+                        edgesInfo.push(new EdgeInfo(v3, v1, currentFaceIndex, i >= 0 ? ((i - 1) * (bezierCurveDivisions + 1) + (j * 2)) : -1)); //e3
                             
-                        v1 = (i + 1) * (bezierCurveDivisions + 1) + j; //aa
+                        v1 = (i + 1) * (bezierCurveDivisions + 1) + j; 
                         v2 = (i + 1) * (bezierCurveDivisions + 1) + (j + 1);
-                        v3 = i * (bezierCurveDivisions + 1) + (j + 1);//bb
+                        v3 = i * (bezierCurveDivisions + 1) + (j + 1);
                         bezierSurfaceFaces.push(new THREE.Face3(v1, v2, v3));
-                        edgesInfo.push(new EdgeInfo(v1, v2));
-                        edgesInfo.push(new EdgeInfo(v2, v3));
-                        edgesInfo.push(new EdgeInfo(v3, v1, currentFaceIndex - 1, currentFaceIndex));
+
+                        currentFaceIndex++;
+
+                        edgesInfo.push(new EdgeInfo(v1, v2, currentFaceIndex, (i + 1) * (bezierCurveDivisions + 1) + (j * 2))); //e4
+                        edgesInfo.push(new EdgeInfo(v2, v3, currentFaceIndex + 1)); //e5
+                        edgesInfo.push(new EdgeInfo(v3, v1, currentFaceIndex, currentFaceIndex -  1)); //e6
                     }
                 }
 
@@ -248,52 +294,55 @@
 				}
 
 
-                var distanceSurfaceVertices = new Array(bezierSurfaceVertices.length);
+				if(controls.drawAuxSurface)
+				{
+	                var distanceSurfaceVertices = new Array(bezierSurfaceVertices.length);
 
-                var distaceSurfaceGeometry = new THREE.Geometry();
-                
+	                var distaceSurfaceGeometry = new THREE.Geometry();
+	                
 
-                bezierSurfaceFaces.forEach(function(face, index, array)
-                {
-                	function f(vertexIndex, faceVertexIndex)
-                	{
-						if(typeof distanceSurfaceVertices[vertexIndex] === "undefined")
-						{
-							var bxn = new THREE.Vector3();
-							bxn.crossVectors(sourceDir, face.vertexNormals[faceVertexIndex]);
+	                bezierSurfaceFaces.forEach(function(face, index, array)
+	                {
+	                	function f(vertexIndex, faceVertexIndex)
+	                	{
+							if(typeof distanceSurfaceVertices[vertexIndex] === "undefined")
+							{
+								var bxn = new THREE.Vector3();
+								bxn.crossVectors(sourceDir, face.vertexNormals[faceVertexIndex]);
 
-							var qa = new THREE.Vector3();
-							qa.subVectors(sourcePoint, bezierSurfaceVertices[vertexIndex]);
+								var qa = new THREE.Vector3();
+								qa.subVectors(sourcePoint, bezierSurfaceVertices[vertexIndex]);
 
-							var d = bxn.dot(qa) / bxn.length();
+								var d = bxn.dot(qa) / bxn.length();
 
-							distanceSurfaceVertices[vertexIndex] = new THREE.Vector3(uvSurfaceVertices[vertexIndex].x,
-																			   		 y + d,
-																			   		 uvSurfaceVertices[vertexIndex].z);
+								distanceSurfaceVertices[vertexIndex] = new THREE.Vector3(uvSurfaceVertices[vertexIndex].x,
+																				   		 y + d,
+																				   		 uvSurfaceVertices[vertexIndex].z);
+							}
 						}
-					}
 
-					var faceCopy = face.clone();
-					f(faceCopy.a, 0);
-					f(faceCopy.b, 1);
-					f(faceCopy.c, 2);
+						var faceCopy = face.clone();
+						f(faceCopy.a, 0);
+						f(faceCopy.b, 1);
+						f(faceCopy.c, 2);
 
-					distaceSurfaceGeometry.faces.push(faceCopy);
-                });
+						distaceSurfaceGeometry.faces.push(faceCopy);
+	                });
 
-                distaceSurfaceGeometry.vertices = distanceSurfaceVertices;
-                distaceSurfaceGeometry.computeFaceNormals();
-                distaceSurfaceGeometry.computeVertexNormals();
-                var distaceSurfaceMaterial = new THREE.MeshLambertMaterial({color: 0x0000ff, wireframe: controls.asWireframe});
-                var distaceSurface = new THREE.Mesh(distaceSurfaceGeometry, distaceSurfaceMaterial);
-                distaceSurface.material.side = THREE.DoubleSide;
-                scene.add(distaceSurface);
+	                distaceSurfaceGeometry.vertices = distanceSurfaceVertices;
+	                distaceSurfaceGeometry.computeFaceNormals();
+	                distaceSurfaceGeometry.computeVertexNormals();
+	                var distaceSurfaceMaterial = new THREE.MeshLambertMaterial({color: 0x0000ff, wireframe: controls.asWireframe});
+	                var distaceSurface = new THREE.Mesh(distaceSurfaceGeometry, distaceSurfaceMaterial);
+	                distaceSurface.material.side = THREE.DoubleSide;
+	                scene.add(distaceSurface);
+	            }
 
-			if(controls.drawDebugElements)
-			{
-                scene.add(createSphere(sourcePoint, 0x00ff00));
-                scene.add(createSphere(sourceEndPoint, 0x00ff00));
-            }
+				if(controls.drawDebugElements)
+				{
+                	scene.add(createSphere(sourcePoint, 0x00ff00));
+                	scene.add(createSphere(sourceEndPoint, 0x00ff00));
+            	}
 
                 var lightBelow = new THREE.PointLight(0xffffff);
                 lightBelow.position.set(20, -40, 20);
@@ -521,7 +570,7 @@
 
 				drawSourceCylinder();
 
-				drawBezierSurface(controlPoints, controls.bezierCurves - 1, controls.color, false);
+				drawBezierSurface(controlPoints, controls.bezierCurves - 1, controls.color);
             	var controlMeshColor = 0x000000;
             	if(controls.showControlPoints)
             		drawControlMesh(controlPoints, controlPointsSpheres, controlMeshColor, controlMeshColor);
@@ -531,7 +580,7 @@
 
                 renderScene();
 			}
-			
+			 
 			$("#WebGL-output").append(renderer.domElement);
 
 			update();
