@@ -218,13 +218,33 @@
                 class EdgeInfo
                 {
  
-                	constructor(vBeginIndex = -1, vEndIndex = -1, face1Index = -1, face2Index = -1, isdt = 0)
+                	constructor(vBeginIndex = -1, vEndIndex = -1, face1Index = -1, face2Index = -1, isdt = -1)
                 	{
                 		this.vBeginIndex = vBeginIndex;
                 		this.vEndIndex = vEndIndex;
                 		this.face1Index = face1Index;
                 		this.face2Index = face2Index;
                 		this.isdt = isdt;
+                	}
+                }
+
+                class FaceInfo
+                {
+                	constructor(edgeIndices)
+                	{
+                		this.edgeIndices = edgeIndices;
+                	}
+
+                	getSubsetExcludingIndex(indexToExclude)
+                	{
+                		var result = [];
+                		this.edgeIndices.forEach(function (edgeIndex, index, array)
+                		{
+                			if(edgeIndex != indexToExclude)
+                				result.push(edgeIndex);
+                		});
+
+                		return result;
                 	}
                 }
 
@@ -240,6 +260,7 @@
                 }
 
                 var edgesInfo = [];
+                var facesInfo = [];
 
                 // creating faces from vertices
                 var currentFaceIndex = 0;
@@ -256,7 +277,8 @@
                         edgesInfo.push(new EdgeInfo(v1, v2, currentFaceIndex - 1, currentFaceIndex)); //e1
                         edgesInfo.push(new EdgeInfo(v2, v3, currentFaceIndex, currentFaceIndex + 1)); //e2
                         edgesInfo.push(new EdgeInfo(v3, v1, currentFaceIndex, i >= 0 ? ((i - 1) * (bezierCurveDivisions + 1) + (j * 2)) : -1)); //e3
-                            
+                        facesInfo.push(new FaceInfo([edgesInfo.length - 3, edgesInfo.length - 2, edgesInfo.length - 1]));
+
                         v1 = (i + 1) * (bezierCurveDivisions + 1) + j; 
                         v2 = (i + 1) * (bezierCurveDivisions + 1) + (j + 1);
                         v3 = i * (bezierCurveDivisions + 1) + (j + 1);
@@ -267,6 +289,7 @@
                         edgesInfo.push(new EdgeInfo(v1, v2, currentFaceIndex, (i + 1) * (bezierCurveDivisions + 1) + (j * 2))); //e4
                         edgesInfo.push(new EdgeInfo(v2, v3, currentFaceIndex + 1)); //e5
                         edgesInfo.push(new EdgeInfo(v3, v1, currentFaceIndex, currentFaceIndex -  1)); //e6
+                        facesInfo.push(new FaceInfo([edgesInfo.length - 3, edgesInfo.length - 2, edgesInfo.length - 1]));
                     }
                 }
 
@@ -352,9 +375,25 @@
 	                	{
 	                		var intersectionPoint = getLinePlaneIntersectionPoint(planeNormal, planePoint, edgeStart, edgeEnd);
 	                		intersectionsInfo.push(new IntersectionInfo(intersectionPoint.x, intersectionPoint.y, index));
+	                		edge.isdt = intersectionsInfo.length - 1;
 	                	}
 
 	                });
+
+	                var contours = [];
+	                var currentIntersection;
+
+	                var previousIntersection;
+
+	                intersectionsInfo.forEach(function(intersection, index, array)
+	                {
+	                	if(previousIntersection !== "undefined")
+	                		//ontours[contours.length - 1].push(previousIntersection.clone());
+
+	                	var faceIndex = edgesInfo[intersection.edgeIndex].face2Index;
+	                	var faceInfo = facesInfo[faceIndex];
+	                });
+
 	            }
 
 				if(controls.drawDebugElements)
