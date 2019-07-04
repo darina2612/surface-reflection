@@ -368,7 +368,7 @@
 	                scene.add(distaceSurface);
 
 	                var planeNormal = new THREE.Vector3(0, 1, 0);
-	                var planePoint = new THREE.Vector3(0, y, 0);
+	                var planePoint = new THREE.Vector3(0, 0, 0);
 
 	                var intersectionsInfo = [];
 
@@ -380,7 +380,7 @@
 	                	if(checkLinePlaneIntersection(planeNormal, edgeStart, edgeEnd))
 	                	{
 	                		var intersectionPoint = getLinePlaneIntersectionPoint(planeNormal, planePoint, edgeStart, edgeEnd);
-	                		intersectionsInfo.push(new IntersectionInfo(intersectionPoint.x, intersectionPoint.y, index));
+	                		intersectionsInfo.push(new IntersectionInfo(intersectionPoint.x, intersectionPoint.z, index));
 	                		edge.isdt = intersectionsInfo.length - 1;
 	                	}
 	                });
@@ -390,19 +390,13 @@
 
 	                var previousIntersection;
 
-	                function getIntersectionForEdge(edge)
+	                function getIntersectionForEdge(edgeIndex)
 	                {
 	                	var result = [];
 
-	                	for(var i = 0; i < intersectionsInfo.length; i++)
-	                	{
-	                		var intersection = intersectionsInfo[i];
-	                		if(intersection.checked)
-	                			continue;
-
-	                		if(intersection.edgeIndex == edge)
-	                			result.push(intersection.clone());
-	                	}
+	                	var isdt = edgesInfo[edgeIndex].isdt;
+	                	if(isdt != -1)
+	                		result.push(intersectionsInfo[isdt].clone());
 
 	                	return result;
 	                }
@@ -453,15 +447,15 @@
 		                }
 	                }
 
-					// contours.forEach(function(contour, index, array)
-					// {
-					// 	contour.forEach(function(point, index, array)
-					// 	{
-					// 		scene.add(createSphere(new THREE.Vector3(point.u, y, point.v), 0x00ff00));
-					// 	});
-					// });
-
-	                
+					contours.forEach(function(contour, index, array)
+					{
+						var points = [];
+						contour.forEach(function(point, index, array)
+						{
+							points.push(new THREE.Vector3(point.u, 0, point.v));
+						});
+						//drawLineMultiplePoints(points, 0x000000);
+					}); 
 	            }
 
 				if(controls.drawDebugElements)
@@ -537,12 +531,18 @@
                     }
                 }
             }
-            
+
             function drawLine(p1, p2, color)
             {
+
+            	drawLineMultiplePoints([p1, p2], color);
+            }
+            
+            function drawLineMultiplePoints(points, color)
+            {
                 var geometry = new THREE.Geometry();
-                geometry.vertices.push(p1);
-                geometry.vertices.push(p2);
+
+                geometry.vertices = points;
                 
                 var material = new THREE.LineBasicMaterial({color : color});
                 
