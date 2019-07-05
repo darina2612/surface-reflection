@@ -55,6 +55,7 @@
 				this.asWireframe = false;
 				this.drawAuxSurface = true;
 				this.drawDebugElements = false;
+				this.log = false;
 			}
 
 			var gui = new dat.GUI({width:370});
@@ -141,6 +142,15 @@
 
 			function getLinePlaneIntersectionPoint(planeNormal, planePoint, lineStart, lineEnd)
 			{
+				if(controls.log)
+				{
+					console.log("LineStart :");
+					console.log(lineStart);
+
+					console.log("LineEnd :");
+					console.log(lineEnd);
+				}
+
 				if(!checkLinePlaneIntersection(planeNormal, lineStart, lineEnd))
 					return new THREE.Vector3();
 
@@ -150,10 +160,22 @@
 				var v1v2 =  new THREE.Vector3();
 				v1v2.subVectors(lineEnd, lineStart);
 				var d = v1p0.dot(planeNormal) / v1v2.dot(planeNormal);
+				
+				if(controls.log)
+				{
+					console.log("d = " + d.toString());
+					console.log("denom : " + v1v2.dot(planeNormal).toString());
+				}
 
 				var intersectionPoint = new THREE.Vector3();
 				intersectionPoint.addScaledVector(v1v2, d);
 				intersectionPoint.add(lineStart);
+
+				if(controls.log)
+				{
+					console.log("Intersection point :");
+					console.log(intersectionPoint);
+				}
 
 				return intersectionPoint;
 			}
@@ -282,7 +304,7 @@
 
                         edgesInfo.push(new EdgeInfo(v1, v2, currentFaceIndex - 1, currentFaceIndex)); //e1
                         edgesInfo.push(new EdgeInfo(v2, v3, currentFaceIndex, currentFaceIndex + 1)); //e2
-                        edgesInfo.push(new EdgeInfo(v3, v1, currentFaceIndex, i >= 0 ? ((i - 1) * (bezierCurveDivisions + 1) + (j * 2)) : -1)); //e3
+                        edgesInfo.push(new EdgeInfo(v3, v1, i >= 0 ? ((i - 1) * (bezierCurveDivisions + 1) + (j * 2)) : -1, currentFaceIndex)); //e3
                         facesInfo.push(new FaceInfo([edgesInfo.length - 3, edgesInfo.length - 2, edgesInfo.length - 1]));
 
                         v1 = (i + 1) * (bezierCurveDivisions + 1) + j; 
@@ -293,7 +315,7 @@
                         currentFaceIndex++;
 
                         edgesInfo.push(new EdgeInfo(v1, v2, currentFaceIndex, (i + 1) * (bezierCurveDivisions + 1) + (j * 2))); //e4
-                        edgesInfo.push(new EdgeInfo(v2, v3, currentFaceIndex + 1)); //e5
+                        edgesInfo.push(new EdgeInfo(v2, v3, currentFaceIndex, currentFaceIndex + 1)); //e5
                         edgesInfo.push(new EdgeInfo(v3, v1, currentFaceIndex, currentFaceIndex -  1)); //e6
                         facesInfo.push(new FaceInfo([edgesInfo.length - 3, edgesInfo.length - 2, edgesInfo.length - 1]));
                     }
@@ -377,6 +399,9 @@
 	                	var edgeStart = distaceSurfaceGeometry.vertices[edge.vBeginIndex].clone();
 	                	var edgeEnd = distaceSurfaceGeometry.vertices[edge.vEndIndex].clone();
 
+	                	if(controls.log)
+							console.log("start idx, end idx : " + edge.vBeginIndex.toString() + ", " + edge.vEndIndex.toString());
+
 	                	if(checkLinePlaneIntersection(planeNormal, edgeStart, edgeEnd))
 	                	{
 	                		var intersectionPoint = getLinePlaneIntersectionPoint(planeNormal, planePoint, edgeStart, edgeEnd);
@@ -418,6 +443,8 @@
 		                	var faceIndex = edgesInfo[intersection.edgeIndex].face2Index;
 		                	if(faceIndex < 0)
 		                	{
+		                		console.log("Invalid index : ");
+		                		console.log(faceIndex);
 		                		contours.push([]);
 		                		continue;
 		                	}
@@ -442,6 +469,8 @@
 		                	if(!intersectionFound)
 		                	{
 		                		previousIntersection = null;
+		                		console.log("no intersections found");
+		                		console.log(previousIntersection);
 		                		contours.push([]);
 		                	}
 		                }
@@ -449,12 +478,13 @@
 
 					contours.forEach(function(contour, index, array)
 					{
-						var points = [];
-						contour.forEach(function(point, index, array)
-						{
-							points.push(new THREE.Vector3(point.u, 0, point.v));
-						});
-						//drawLineMultiplePoints(points, 0x000000);
+						
+						if(controls.log)
+							console.log(contour);
+
+						drawLine(new THREE.Vector3(contour[0].u,  0, contour[0].v),
+								 new THREE.Vector3(contour[contour.length - 1].u,  0, contour[contour.length - 1].v),
+								 0x000000);
 					}); 
 	            }
 
@@ -534,6 +564,12 @@
 
             function drawLine(p1, p2, color)
             {
+            	if(controls.log)
+				{
+	            	console.log("Line with points :");
+					console.log(p1);
+					console.log(p2);
+				}
 
             	drawLineMultiplePoints([p1, p2], color);
             }
@@ -678,6 +714,12 @@
             	if(e.code == "Space")
             	{
             		controls.drawDebugElements = !controls.drawDebugElements;
+            		update();
+            	}
+
+            	if(e.code == "KeyL")
+            	{
+            		controls.log = !controls.log;
             		update();
             	}
             }
