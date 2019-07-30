@@ -132,8 +132,22 @@
 
 			var uvSurfaceVertices = [];
 
+			function equal(a, b)
+			{
+				var dif = Math.abs(a - b);
+				return dif < 0.0001;
+			}
+
 			function checkLinePlaneIntersection(planeNormal, lineStart, lineEnd)
 			{
+				if (equal(lineStart.x, lineEnd.x) &&
+					equal(lineStart.y, lineEnd.y) &&
+					equal(lineStart.z, lineEnd.z))
+				{
+					console.log("equals");
+					return false;
+				}
+
 				var v = new THREE.Vector3();
 				v.subVectors(lineEnd, lineStart);
 
