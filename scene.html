@@ -140,18 +140,10 @@
 
 			function checkLinePlaneIntersection(planeNormal, lineStart, lineEnd)
 			{
-				if (equal(lineStart.x, lineEnd.x) &&
-					equal(lineStart.y, lineEnd.y) &&
-					equal(lineStart.z, lineEnd.z))
-				{
-					console.log("equals");
-					return false;
-				}
-
 				var v = new THREE.Vector3();
 				v.subVectors(lineEnd, lineStart);
 
-				return v.dot(planeNormal) != 0;
+				return !equal(v.dot(planeNormal), 0);
 			}
 
 			function getLinePlaneIntersectionPoint(planeNormal, planePoint, lineStart, lineEnd)
@@ -166,30 +158,20 @@
 				}
 
 				if(!checkLinePlaneIntersection(planeNormal, lineStart, lineEnd))
-					return new THREE.Vector3();
+					return null;
 
 				var v1p0 =  new THREE.Vector3();
 				v1p0.subVectors(planePoint, lineStart);
 
 				var v1v2 =  new THREE.Vector3();
 				v1v2.subVectors(lineEnd, lineStart);
-				var d = v1p0.dot(planeNormal) / v1v2.dot(planeNormal);
+				var numer = v1p0.dot(planeNormal);
+				var denom = v1v2.dot(planeNormal);
+				var d =  numer / denom;
 				
-				if(controls.log)
-				{
-					console.log("d = " + d.toString());
-					console.log("denom : " + v1v2.dot(planeNormal).toString());
-				}
-
 				var intersectionPoint = new THREE.Vector3();
 				intersectionPoint.addScaledVector(v1v2, d);
 				intersectionPoint.add(lineStart);
-
-				if(controls.log)
-				{
-					console.log("Intersection point :");
-					console.log(intersectionPoint);
-				}
 
 				return intersectionPoint;
 			}
@@ -419,8 +401,10 @@
 	                	if(checkLinePlaneIntersection(planeNormal, edgeStart, edgeEnd))
 	                	{
 	                		var intersectionPoint = getLinePlaneIntersectionPoint(planeNormal, planePoint, edgeStart, edgeEnd);
+
 	                		intersectionsInfo.push(new IntersectionInfo(intersectionPoint.x, intersectionPoint.z, index));
 	                		edge.isdt = intersectionsInfo.length - 1;
+	                		
 	                	}
 	                });
 
@@ -492,13 +476,15 @@
 
 					contours.forEach(function(contour, index, array)
 					{
-						
 						if(controls.log)
 							console.log(contour);
 
-						drawLine(new THREE.Vector3(contour[0].u,  0, contour[0].v),
-								 new THREE.Vector3(contour[contour.length - 1].u,  0, contour[contour.length - 1].v),
-								 0x000000);
+						for(var i = 0; i < contour.length - 1; i++)
+						{
+							drawLine(new THREE.Vector3(contour[i].u,  0, contour[1].v),
+								 new THREE.Vector3(contour[i + 1].u,  0, contour[i + 1].v),
+								 0xff00ff);
+						}
 					}); 
 	            }
 
