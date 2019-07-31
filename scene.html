@@ -173,6 +173,17 @@
 				intersectionPoint.addScaledVector(v1v2, d);
 				intersectionPoint.add(lineStart);
 
+				var minX = Math.min(lineStart.x, lineEnd.x);
+				var maxX = Math.max(lineStart.x, lineEnd.x);
+				var minZ = Math.min(lineStart.z, lineEnd.z);
+				var maxZ = Math.max(lineStart.z, lineEnd.z);
+
+				if(intersectionPoint.x < minX || intersectionPoint.x > maxX ||
+				   intersectionPoint.z < minZ || intersectionPoint.z > maxZ)
+				{
+					return null;
+				}
+
 				return intersectionPoint;
 			}
 			
@@ -401,10 +412,11 @@
 	                	if(checkLinePlaneIntersection(planeNormal, edgeStart, edgeEnd))
 	                	{
 	                		var intersectionPoint = getLinePlaneIntersectionPoint(planeNormal, planePoint, edgeStart, edgeEnd);
-
-	                		intersectionsInfo.push(new IntersectionInfo(intersectionPoint.x, intersectionPoint.z, index));
-	                		edge.isdt = intersectionsInfo.length - 1;
-	                		
+	                		if(intersectionPoint != null)
+	                		{
+	                			intersectionsInfo.push(new IntersectionInfo(intersectionPoint.x, intersectionPoint.z, index));
+	                			edge.isdt = intersectionsInfo.length - 1;
+	                		}
 	                	}
 	                });
 
@@ -482,8 +494,8 @@
 						for(var i = 0; i < contour.length - 1; i++)
 						{
 							drawLine(new THREE.Vector3(contour[i].u,  0, contour[1].v),
-								 new THREE.Vector3(contour[i + 1].u,  0, contour[i + 1].v),
-								 0xff00ff);
+								 	new THREE.Vector3(contour[i + 1].u,  0, contour[i + 1].v),
+								 	0xff00ff, 3);
 						}
 					}); 
 	            }
@@ -562,7 +574,7 @@
                 }
             }
 
-            function drawLine(p1, p2, color)
+            function drawLine(p1, p2, color, width = 1)
             {
             	if(controls.log)
 				{
@@ -571,16 +583,16 @@
 					console.log(p2);
 				}
 
-            	drawLineMultiplePoints([p1, p2], color);
+            	drawLineMultiplePoints([p1, p2], color, width);
             }
             
-            function drawLineMultiplePoints(points, color)
+            function drawLineMultiplePoints(points, color, width =  1)
             {
                 var geometry = new THREE.Geometry();
 
                 geometry.vertices = points;
                 
-                var material = new THREE.LineBasicMaterial({color : color});
+                var material = new THREE.LineBasicMaterial({color : color, linewidth : width});
                 
                 var line = new THREE.Line(geometry, material);
                 
