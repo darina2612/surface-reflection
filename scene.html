@@ -302,16 +302,32 @@
                 var v1, v2, v2;  // vertex indices in bezierSurfaceVertices array
                 for (var i = 0; i < bezierCurveDivisions; i++)
                 {
-                    for (var j=0; j < bezierCurveDivisions; j++)
+                    for (var j = 0; j < bezierCurveDivisions; j++)
                     {
                         v1 = i * (bezierCurveDivisions + 1) + j;
                         v2 = (i + 1) * (bezierCurveDivisions + 1) + j; 
                         v3 = i * (bezierCurveDivisions + 1) + (j + 1); 
                         bezierSurfaceFaces.push(new THREE.Face3(v1, v2, v3));
 
-                        edgesInfo.push(new EdgeInfo(v1, v2, currentFaceIndex - 1, currentFaceIndex)); //e1
-                        edgesInfo.push(new EdgeInfo(v2, v3, currentFaceIndex, currentFaceIndex + 1)); //e2
-                        edgesInfo.push(new EdgeInfo(v3, v1, i > 0 ? ((i - 1) * (bezierCurveDivisions + 1) + (j * 2)) : -1, currentFaceIndex)); //e3
+                        //e1
+                        var f1 = currentFaceIndex - 1;
+                        var f2 = currentFaceIndex;
+                        if(j == 0)
+                        	f1 = -1;
+                        edgesInfo.push(new EdgeInfo(v1, v2, f1, f2));
+
+                        //e2
+                        f1 = currentFaceIndex;
+                        f2 = currentFaceIndex + 1;
+                        edgesInfo.push(new EdgeInfo(v2, v3, f1, f2));
+
+                        //e3
+                        f1 = ((i - 1) * (bezierCurveDivisions + 1) + (j * 2));
+                        f2 = currentFaceIndex;
+                        if(i == 0)
+                        	f1 = -1;
+                        edgesInfo.push(new EdgeInfo(v3, v1, f1, f2));
+
                         facesInfo.push(new FaceInfo([edgesInfo.length - 3, edgesInfo.length - 2, edgesInfo.length - 1]));
 
                         v1 = (i + 1) * (bezierCurveDivisions + 1) + j; 
@@ -321,9 +337,25 @@
 
                         currentFaceIndex++;
 
-                        edgesInfo.push(new EdgeInfo(v1, v2, currentFaceIndex, (i + 1) * (bezierCurveDivisions + 1) + (j * 2))); //e4
-                        edgesInfo.push(new EdgeInfo(v2, v3, currentFaceIndex, currentFaceIndex + 1)); //e5
-                        edgesInfo.push(new EdgeInfo(v3, v1, currentFaceIndex, currentFaceIndex -  1)); //e6
+                        //e4
+                        f1 = currentFaceIndex;
+                        f2 = (i + 1) * (bezierCurveDivisions + 1) + (j * 2);
+                        if(i > bezierCurveDivisions - 1)
+                        	f2 = -1;
+                        edgesInfo.push(new EdgeInfo(v1, v2, f1, f2));
+
+                        //e5
+                        f1 = currentFaceIndex;
+                        f2 = currentFaceIndex + 1;
+                        if(j > bezierCurveDivisions - 1)
+                        	f2 = -1;
+                        edgesInfo.push(new EdgeInfo(v2, v3, f1, f2));
+
+                        //e6
+                        f1 = currentFaceIndex;
+                        f2 = currentFaceIndex + 1;
+                        edgesInfo.push(new EdgeInfo(v3, v1, f1, f2));
+
                         facesInfo.push(new FaceInfo([edgesInfo.length - 3, edgesInfo.length - 2, edgesInfo.length - 1]));
 
                         currentFaceIndex++;
@@ -359,7 +391,6 @@
 	                var distanceSurfaceVertices = new Array(bezierSurfaceVertices.length);
 
 	                var distaceSurfaceGeometry = new THREE.Geometry();
-	                
 
 	                bezierSurfaceFaces.forEach(function(face, index, array)
 	                {
@@ -421,13 +452,6 @@
 	                	}
 	                });
 
-	     //            for(var i = 0; i < intersectionsInfo.length - 1; i++)
-						// {
-						// 	drawLine(new THREE.Vector3(intersectionsInfo[i].u,  0, intersectionsInfo[1].v),
-						// 		 	new THREE.Vector3(intersectionsInfo[i + 1].u,  0, intersectionsInfo[i + 1].v),
-						// 		 	0xff00ff, 3);
-						// }
-
 	                var contours = [];
 	                var currentIntersection;
 
@@ -455,9 +479,6 @@
 	                	return -1;
 	                }
 
-
-	                var count = 0;
-
 	                while(true)
 	                {
 	                	var index = getUncheckedIntersectionIndex();
@@ -466,22 +487,13 @@
 
 		                contours.push([]);
 
-		                if(count > 1000)
-	                		break;
-
 		                while(true)
 		                {	
-		                if(count > 1000)
-	                		break;
-
-	                	++count;	         
-
 	                		function checkFace(faceIndex, intersectionFoundHandler)
 	                		{       	
-				                if(faceIndex < 0)
+				                if(faceIndex < 0 || faceIndex >= facesInfo.length)
 				                {
-				                	console.log("Invalid index : ");
-				                	console.log(faceIndex);
+				                	console.log("Invalid face index : " + faceIndex);
 				                	return false;
 				                }
 				                	
@@ -490,7 +502,8 @@
 			                	var otherEdges = faceInfo.getSubsetExcludingIndex(intersectionsInfo[index].edgeIndex);
 								if(otherEdges.length > 2)
 			                	{
-			                		console.log("Error!");
+			                		console.log("Error! " + faceIndex);
+			                		console.log(JSON.stringify(faceInfo));
 			                	}
 			                	var intersectionFound = false;
 			                	for(var j = 0; j < otherEdges.length; j++)
@@ -504,13 +517,14 @@
 
 			                			intersectionFoundHandler();
 			                			index = newId;
-			                			console.log("Intersection found");
 			                			return true;
 			                		}
 			                	}
 
 			                	return false;
 			                }
+
+			                console.log(edgesInfo[intersectionsInfo[index].edgeIndex].face1Index + " " + edgesInfo[intersectionsInfo[index].edgeIndex].face2Index);
 
 			                if(!(checkFace(edgesInfo[intersectionsInfo[index].edgeIndex].face1Index,
 			                	function ()
