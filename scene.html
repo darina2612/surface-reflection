@@ -433,13 +433,13 @@
 
 	                var previousIntersection;
 
-	                function getIntersectionForEdge(edgeIndex)
+	                function getIntersectionInexesForEdge(edgeIndex)
 	                {
 	                	var result = [];
 
 	                	var isdt = edgesInfo[edgeIndex].isdt;
 	                	if(isdt != -1)
-	                		result.push(intersectionsInfo[isdt].clone());
+	                		result.push(isdt);
 
 	                	return result;
 	                }
@@ -464,60 +464,72 @@
 	                	if(index == -1)
 	                		break;
 
-		                var intersection = intersectionsInfo[index];
 		                contours.push([]);
 
-		                while(!intersection.checked)
+		                if(count > 1000)
+	                		break;
+
+		                while(true)
 		                {	
-		                // if(count > 1000)
-	                	// 	break;
+		                if(count > 1000)
+	                		break;
 
-	                	// ++count;	                	
-			               	var faceIndex = edgesInfo[intersection.edgeIndex].face2Index;
-			                if(faceIndex < 0)
-			                {
-			                	console.log("Invalid index : ");
-			                	console.log(faceIndex);
-			                	intersection.checked = true;
-			                	contours[contours.length - 1].push(intersection);
-			                	break;
+	                	++count;	         
+
+	                		function checkFace(faceIndex, intersectionFoundHandler)
+	                		{       	
+				                if(faceIndex < 0)
+				                {
+				                	console.log("Invalid index : ");
+				                	console.log(faceIndex);
+				                	return false;
+				                }
+				                	
+				                var faceInfo = facesInfo[faceIndex];
+
+			                	var otherEdges = faceInfo.getSubsetExcludingIndex(intersectionsInfo[index].edgeIndex);
+								if(otherEdges.length > 2)
+			                	{
+			                		console.log("Error!");
+			                	}
+			                	var intersectionFound = false;
+			                	for(var j = 0; j < otherEdges.length; j++)
+			                	{
+			                		var intersectionIndexes = getIntersectionInexesForEdge(otherEdges[j]);
+			                		if(intersectionIndexes.length == 1)
+			                		{
+			                			var newId = intersectionIndexes[0];
+			                			if(intersectionsInfo[newId].checked)
+			                				return false;
+
+			                			intersectionFoundHandler();
+			                			index = newId;
+			                			console.log("Intersection found");
+			                			return true;
+			                		}
+			                	}
+
+			                	return false;
 			                }
-			                	
-			                var faceInfo = facesInfo[faceIndex];
 
-		                	var otherEdges = faceInfo.getSubsetExcludingIndex(intersection.edgeIndex);
-							if(otherEdges.length > 2)
-		                	{
-		                		console.log("Error!");
-		                	}
-		                	var intersectionFound = false;
-		                	for(var j = 0; j < otherEdges.length; j++)
-		                	{
-		                		var intersections = getIntersectionForEdge(otherEdges[j]);
-		                		if(intersections.length == 1)
-		                		{
-		                			intersection.checked = true;
-		                			contours[contours.length - 1].push(intersection);
-		                			intersection = intersections[0];
-		                			intersectionFound = true;
-		                			console.log("Intersection found");
-		                			break;
-		                		}
-		                	}
-
-		                	if(!intersectionFound)
-		                	{
-		                		console.log("Intersection not found");
-
-		                		break;
-		                		// previousIntersection = null;
-		                		// console.log("no intersections found");
-		                		// console.log(previousIntersection);
-		                		// contours.push([]);
-		                	}
+			                if(!(checkFace(edgesInfo[intersectionsInfo[index].edgeIndex].face1Index,
+			                	function ()
+			                	{
+			                		intersectionsInfo[index].checked = true;
+				            		contours[contours.length - 1].push(intersectionsInfo[index].clone());
+			                	}) ||
+			                	checkFace(edgesInfo[intersectionsInfo[index].edgeIndex].face2Index, 
+			                	function ()
+			                	{
+			                		intersectionsInfo[index].checked = true;
+				            		contours[contours.length - 1].push(intersectionsInfo[index].clone());
+			                	})))
+			                {
+			                	intersectionsInfo[index].checked = true;
+				            	contours[contours.length - 1].push(intersectionsInfo[index].clone());
+				            	break;
+			                } 
 	                	}
-
-	                	break;
 	                }
 
 					contours.forEach(function(contour, index, array)
@@ -525,12 +537,12 @@
 						if(controls.log)
 							console.log(contour);
 
-						// for(var i = 0; i < contour.length - 1; i++)
-						// {
-						// 	drawLine(new THREE.Vector3(contour[i].u,  0, contour[1].v),
-						// 		 	new THREE.Vector3(contour[i + 1].u,  0, contour[i + 1].v),
-						// 		 	0xff00ff, 3);
-						// }
+						for(var i = 0; i < contour.length - 1; i++)
+						{
+							drawLine(new THREE.Vector3(contour[i].u,  0, contour[1].v),
+								 	new THREE.Vector3(contour[i + 1].u,  0, contour[i + 1].v),
+								 	0xff00ff, 3);
+						}
 					}); 
 	            }
 
