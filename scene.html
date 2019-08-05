@@ -178,8 +178,9 @@
 				var minZ = Math.min(lineStart.z, lineEnd.z);
 				var maxZ = Math.max(lineStart.z, lineEnd.z);
 
-				if(intersectionPoint.x < minX || intersectionPoint.x > maxX ||
-				   intersectionPoint.z < minZ || intersectionPoint.z > maxZ)
+				var advance = 0.0001;
+				if(intersectionPoint.x < minX - advance || intersectionPoint.x > maxX + advance ||
+				   intersectionPoint.z < minZ - advance || intersectionPoint.z > maxZ + advance)
 				{
 					return null;
 				}
@@ -499,12 +500,9 @@
 				                	
 				                var faceInfo = facesInfo[faceIndex];
 
+
+
 			                	var otherEdges = faceInfo.getSubsetExcludingIndex(intersectionsInfo[index].edgeIndex);
-								if(otherEdges.length > 2)
-			                	{
-			                		console.log("Error! " + faceIndex);
-			                		console.log(JSON.stringify(faceInfo));
-			                	}
 			                	var intersectionFound = false;
 			                	for(var j = 0; j < otherEdges.length; j++)
 			                	{
@@ -523,8 +521,6 @@
 
 			                	return false;
 			                }
-
-			                console.log(edgesInfo[intersectionsInfo[index].edgeIndex].face1Index + " " + edgesInfo[intersectionsInfo[index].edgeIndex].face2Index);
 
 			                if(!(checkFace(edgesInfo[intersectionsInfo[index].edgeIndex].face1Index,
 			                	function ()
