@@ -37,7 +37,7 @@
             camera.position.x = -60;
             camera.position.y = 50;
             camera.position.z = -40;
-            camera.lookAt(new THREE.Vector3(20,0,15));
+            camera.lookAt(new THREE.Vector3(20, 0, 15));
             camera.updateProjectionMatrix();
             $(cameraControls).on("change", renderScene);
             cameraControls.target = new THREE.Vector3(20,0,15);
@@ -697,7 +697,7 @@
                     mouseMove.z = 1;
                     mouseMove.unproject(camera);
                     var ray = new THREE.Ray(camera.position, mouseMove.sub(camera.position).normalize());
-                    var intersection = ray.intersectPlane(plane);
+                    var intersection = ray.intersectPlane(plane, new THREE.Vector3());
                     
                     selectedSphere.position.set(intersection.x, intersection.y, intersection.z);
                     var i = selectedSphere.name.split("-"); 
@@ -723,7 +723,8 @@
                     mouseMove.z = 1;
                     mouseMove.unproject(camera);
                     var ray = new THREE.Ray(camera.position, mouseMove.sub(camera.position).normalize());
-                    var intersection = ray.intersectPlane(plane);
+                    var intersection = new THREE.Vector3();
+                    ray.intersectPlane(plane, intersection);
                     sourceCylinderPos = intersection.clone();
                     update();
                 });
