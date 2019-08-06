@@ -543,24 +543,35 @@
 
 					contours.forEach(function(contour, index, array)
 					{
-						if(controls.log)
-							console.log(contour);
-
 						var contour3dPoints = [];
+
+						var lineWidth =  3;
+						var color = 0xff00ff;
 
 						contour.forEach(function(point, index, array)
 						{
 							contour3dPoints.push(new THREE.Vector3(point.u, 0, point.v));
 						});
 						
-						var curve = new THREE.CatmullRomCurve3(contour3dPoints);
+						if(contour3dPoints.length <= 1)
+						{
+							if(contour3dPoints.length == i)
+							{
+								scene.add(createSphere(contour3dPoints[0], color));
+							}
+						}
+						else
+						{
+							console.log(contour3dPoints);
+							var curve = new THREE.CatmullRomCurve3(contour3dPoints);
 
-						var points = curve.getPoints(50);
-						var geometry = new THREE.BufferGeometry().setFromPoints(points);
-						var material = new THREE.LineBasicMaterial( { color : 0xff00ff , linewidth : 3} );
-						var curveObject = new THREE.Line( geometry, material );
-						
-						scene.add(curveObject);
+							var points = curve.getPoints(contour3dPoints.length);
+							var geometry = new THREE.BufferGeometry().setFromPoints(points);
+							var material = new THREE.LineBasicMaterial( { color : color , linewidth : lineWidth} );
+							var curveObject = new THREE.Line( geometry, material );
+							
+							scene.add(curveObject);
+						}
 					}); 
 	            }
 
