@@ -1,7 +1,8 @@
 <html>
 	<head>
 		<title>Scene</title>
-		<script type="text/javascript" src="js/three.js"></script>
+		<!-- TODO : Check what happens with this include if no internet, replace with the file in the end -->
+		<script type="text/javascript" src="https://threejs.org/build/three.js"></script>
         <script type="text/javascript" src="js/jquery-2.1.3.min.js"></script>
         <script type="text/javascript" src="js/dat.gui.min.js"></script>
         <script type="text/javascript" src="js/OrbitControls.js"></script>
@@ -23,7 +24,7 @@
             renderer.setClearColor(0xEEEEEE);
             renderer.setSize( window.innerWidth, window.innerHeight );
                 
-            var axisHelper = new THREE.AxisHelper(20);
+            var axisHelper = new THREE.AxesHelper(20);
 
             $(window).on("resize", function()
             {
@@ -500,8 +501,6 @@
 				                	
 				                var faceInfo = facesInfo[faceIndex];
 
-
-
 			                	var otherEdges = faceInfo.getSubsetExcludingIndex(intersectionsInfo[index].edgeIndex);
 			                	var intersectionFound = false;
 			                	for(var j = 0; j < otherEdges.length; j++)
@@ -547,12 +546,21 @@
 						if(controls.log)
 							console.log(contour);
 
-						for(var i = 0; i < contour.length - 1; i++)
+						var contour3dPoints = [];
+
+						contour.forEach(function(point, index, array)
 						{
-							drawLine(new THREE.Vector3(contour[i].u,  0, contour[1].v),
-								 	new THREE.Vector3(contour[i + 1].u,  0, contour[i + 1].v),
-								 	0xff00ff, 3);
-						}
+							contour3dPoints.push(new THREE.Vector3(point.u, 0, point.v));
+						});
+						
+						var curve = new THREE.CatmullRomCurve3(contour3dPoints);
+
+						var points = curve.getPoints(50);
+						var geometry = new THREE.BufferGeometry().setFromPoints(points);
+						var material = new THREE.LineBasicMaterial( { color : 0xff00ff , linewidth : 3} );
+						var curveObject = new THREE.Line( geometry, material );
+						
+						scene.add(curveObject);
 					}); 
 	            }
 
