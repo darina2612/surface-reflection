@@ -557,29 +557,38 @@
 							var p = new THREE.Vector3(point.u, 0, point.v);
 							raycaster.set(p, planeNormal);
 							var intersectedObjects = raycaster.intersectObject(bezierSurface);
-							if(intersectedObjects.length > 0)
-								contour3dPoints.push(intersectedObjects[0].point);
-							if(intersectedObjects.length > 1)
-								console.log("Many ray-surface intersection points!!");
-						});
-						
-						if(contour3dPoints.length <= 1)
-						{
-							if(contour3dPoints.length == i)
+							for(var i = 0; i < intersectedObjects.length; i++)
 							{
-								scene.add(createSphere(contour3dPoints[0], color));
+								if(contour3dPoints.length <= i)
+								{
+									for(var j = 0; j <= i - contour3dPoints.length; j++)
+										contour3dPoints.push([]);
+								}
+
+								contour3dPoints[i].push(intersectedObjects[i].point);
 							}
-						}
-						else
+						});
+
+						contour3dPoints.forEach(function(countourPoints, index, array)
 						{
-							var curve = new THREE.CatmullRomCurve3(contour3dPoints);
-							var points = curve.getPoints(contour3dPoints.length);
-							var geometry = new THREE.BufferGeometry().setFromPoints(points);
-							var material = new THREE.LineBasicMaterial( { color : color , linewidth : lineWidth} );
-							var curveObject = new THREE.Line( geometry, material );
+							if(contour3dPoints.length <= 1)
+							{
+								if(countourPoints.length == i)
+								{
+									scene.add(createSphere(countourPoints[0], color));
+								}
+							}
+							else
+							{
+								var curve = new THREE.CatmullRomCurve3(countourPoints);
+								var points = curve.getPoints(countourPoints.length);
+								var geometry = new THREE.BufferGeometry().setFromPoints(points);
+								var material = new THREE.LineBasicMaterial( { color : color , linewidth : lineWidth} );
+								var curveObject = new THREE.Line( geometry, material );
 							
-							scene.add(curveObject);
-						}
+								scene.add(curveObject);
+							}
+						});
 					}); 
 				}
 
