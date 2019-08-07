@@ -46,9 +46,7 @@
 			var controls = new function()
 			{
 				this.color = 0xff0000;
-				this.x = 0.0;
-				this.y = 0.0;
-				this.z = 0.0;
+				this.radius = 5;
 				this.showControlPoints = true;
 				this.bezierCurves = 51;
 				this.interactiveCamera = true;
@@ -56,7 +54,6 @@
 				this.asWireframe = false;
 				this.drawAuxSurface = true;
 				this.drawDebugElements = false;
-				this.log = false;
 			}
 
 			var gui = new dat.GUI({width:370});
@@ -69,6 +66,21 @@
                     $(document).off("mouseup");
                     cameraControls.enabled = true;  // enabling camera controls again
                 });
+			});
+
+			var radiusController = gui.add(controls, "radius").min(1).max(10).step(1).name("Radius");
+			radiusController.onChange(function(n)
+			{
+				console.log("radius::onChange");
+				cameraControls.enabled = false;
+			});
+			radiusController.onFinishChange(function(n)
+			{
+				console.log("radius::onFinishChange");
+
+				cameraControls.enabled = true;
+				update();
+				renderScene();
 			});
 			
 			var curvesController = gui.add(controls, "bezierCurves").min(10).max(100).step(1).name("Bezier Curves");
@@ -149,15 +161,6 @@
 
 			function getLinePlaneIntersectionPoint(planeNormal, planePoint, lineStart, lineEnd)
 			{
-				if(controls.log)
-				{
-					console.log("LineStart :");
-					console.log(lineStart);
-
-					console.log("LineEnd :");
-					console.log(lineEnd);
-				}
-
 				if(!checkLinePlaneIntersection(planeNormal, lineStart, lineEnd))
 					return null;
 
@@ -431,155 +434,158 @@
                 	scene.add(distaceSurface);
             	}
 
-                var planeNormal = new THREE.Vector3(0, 1, 0);
-                var planePoint = new THREE.Vector3(0, 0, 0);
+            	function calculateReflectionsForRarius(planePoint)
+            	{
+	                var planeNormal = new THREE.Vector3(0, 1, 0);
 
-                var intersectionsInfo = [];
+	                var intersectionsInfo = [];
 
-                edgesInfo.forEach(function(edge, index, array)
-                {
-                	var edgeStart = distaceSurfaceGeometry.vertices[edge.vBeginIndex].clone();
-                	var edgeEnd = distaceSurfaceGeometry.vertices[edge.vEndIndex].clone();
+	                edgesInfo.forEach(function(edge, index, array)
+	                {
+	                	var edgeStart = distaceSurfaceGeometry.vertices[edge.vBeginIndex].clone();
+	                	var edgeEnd = distaceSurfaceGeometry.vertices[edge.vEndIndex].clone();
 
-                	if(controls.log)
-						console.log("start idx, end idx : " + edge.vBeginIndex.toString() + ", " + edge.vEndIndex.toString());
+	                	if(checkLinePlaneIntersection(planeNormal, edgeStart, edgeEnd))
+	                	{
+	                		var intersectionPoint = getLinePlaneIntersectionPoint(planeNormal, planePoint, edgeStart, edgeEnd);
+	                		if(intersectionPoint != null)
+	                		{
+	                			intersectionsInfo.push(new IntersectionInfo(intersectionPoint.x, intersectionPoint.z, index));
+	                			edge.isdt = intersectionsInfo.length - 1;
+	                		}
+	                	}
+	                });
 
-                	if(checkLinePlaneIntersection(planeNormal, edgeStart, edgeEnd))
-                	{
-                		var intersectionPoint = getLinePlaneIntersectionPoint(planeNormal, planePoint, edgeStart, edgeEnd);
-                		if(intersectionPoint != null)
-                		{
-                			intersectionsInfo.push(new IntersectionInfo(intersectionPoint.x, intersectionPoint.z, index));
-                			edge.isdt = intersectionsInfo.length - 1;
-                		}
-                	}
-                });
+	                var contours = [];
+	                var currentIntersection;
 
-                var contours = [];
-                var currentIntersection;
+	                var previousIntersection;
 
-                var previousIntersection;
+	                function getIntersectionInexesForEdge(edgeIndex)
+	                {
+	                	var result = [];
 
-                function getIntersectionInexesForEdge(edgeIndex)
-                {
-                	var result = [];
+	                	var isdt = edgesInfo[edgeIndex].isdt;
+	                	if(isdt != -1)
+	                		result.push(isdt);
 
-                	var isdt = edgesInfo[edgeIndex].isdt;
-                	if(isdt != -1)
-                		result.push(isdt);
+	                	return result;
+	                }
 
-                	return result;
-                }
+	                function getUncheckedIntersectionIndex()
+	                {
+	                	for(var i = 0; i < intersectionsInfo.length; i++)
+	                	{
+	                		if(!intersectionsInfo[i].checked)
+	                			return i;
+	                	}
 
-                function getUncheckedIntersectionIndex()
-                {
-                	for(var i = 0; i < intersectionsInfo.length; i++)
-                	{
-                		if(!intersectionsInfo[i].checked)
-                			return i;
-                	}
-
-                	return -1;
-                }
-
-                while(true)
-                {
-                	var index = getUncheckedIntersectionIndex();
-                	if(index == -1)
-                		break;
-
-	                contours.push([]);
+	                	return -1;
+	                }
 
 	                while(true)
-	                {	
-                		function checkFace(faceIndex, intersectionFoundHandler)
-                		{       	
-			                if(faceIndex < 0 || faceIndex >= facesInfo.length)
-			                {
-			                	console.log("Invalid face index : " + faceIndex);
+	                {
+	                	var index = getUncheckedIntersectionIndex();
+	                	if(index == -1)
+	                		break;
+
+		                contours.push([]);
+
+		                while(true)
+		                {	
+	                		function checkFace(faceIndex, intersectionFoundHandler)
+	                		{       	
+				                if(faceIndex < 0 || faceIndex >= facesInfo.length)
+				                {
+				                	console.log("Invalid face index : " + faceIndex);
+				                	return false;
+				                }
+				                	
+				                var faceInfo = facesInfo[faceIndex];
+
+			                	var otherEdges = faceInfo.getSubsetExcludingIndex(intersectionsInfo[index].edgeIndex);
+			                	var intersectionFound = false;
+			                	for(var j = 0; j < otherEdges.length; j++)
+			                	{
+			                		var intersectionIndexes = getIntersectionInexesForEdge(otherEdges[j]);
+			                		if(intersectionIndexes.length == 1)
+			                		{
+			                			var newId = intersectionIndexes[0];
+			                			if(intersectionsInfo[newId].checked)
+			                				return false;
+
+			                			intersectionFoundHandler();
+			                			index = newId;
+			                			return true;
+			                		}
+			                	}
+
 			                	return false;
 			                }
-			                	
-			                var faceInfo = facesInfo[faceIndex];
 
-		                	var otherEdges = faceInfo.getSubsetExcludingIndex(intersectionsInfo[index].edgeIndex);
-		                	var intersectionFound = false;
-		                	for(var j = 0; j < otherEdges.length; j++)
-		                	{
-		                		var intersectionIndexes = getIntersectionInexesForEdge(otherEdges[j]);
-		                		if(intersectionIndexes.length == 1)
-		                		{
-		                			var newId = intersectionIndexes[0];
-		                			if(intersectionsInfo[newId].checked)
-		                				return false;
+			                if(!(checkFace(edgesInfo[intersectionsInfo[index].edgeIndex].face1Index,
+			                	function ()
+			                	{
+			                		intersectionsInfo[index].checked = true;
+				            		contours[contours.length - 1].push(intersectionsInfo[index].clone());
+			                	}) ||
+			                	checkFace(edgesInfo[intersectionsInfo[index].edgeIndex].face2Index, 
+			                	function ()
+			                	{
+			                		intersectionsInfo[index].checked = true;
+				            		contours[contours.length - 1].push(intersectionsInfo[index].clone());
+			                	})))
+			                {
+			                	intersectionsInfo[index].checked = true;
+				            	contours[contours.length - 1].push(intersectionsInfo[index].clone());
+				            	break;
+			                } 
+	                	}
+	                }
 
-		                			intersectionFoundHandler();
-		                			index = newId;
-		                			return true;
-		                		}
-		                	}
-
-		                	return false;
-		                }
-
-		                if(!(checkFace(edgesInfo[intersectionsInfo[index].edgeIndex].face1Index,
-		                	function ()
-		                	{
-		                		intersectionsInfo[index].checked = true;
-			            		contours[contours.length - 1].push(intersectionsInfo[index].clone());
-		                	}) ||
-		                	checkFace(edgesInfo[intersectionsInfo[index].edgeIndex].face2Index, 
-		                	function ()
-		                	{
-		                		intersectionsInfo[index].checked = true;
-			            		contours[contours.length - 1].push(intersectionsInfo[index].clone());
-		                	})))
-		                {
-		                	intersectionsInfo[index].checked = true;
-			            	contours[contours.length - 1].push(intersectionsInfo[index].clone());
-			            	break;
-		                } 
-                	}
-                }
-
-				contours.forEach(function(contour, index, array)
-				{
-					var contour3dPoints = [];
-
-					var lineWidth =  3;
-					var color = 0x00ff00;
-
-					var raycaster = new THREE.Raycaster();
-	
-					contour.forEach(function(point, index, array)
+					contours.forEach(function(contour, index, array)
 					{
-						var p = new THREE.Vector3(point.u, 0, point.v);
-						raycaster.set(p, planeNormal);
-						var intersectedObjects = raycaster.intersectObject(bezierSurface);
-						if(intersectedObjects.length > 0)
-							contour3dPoints.push(intersectedObjects[0].point);
-						if(intersectedObjects.length > 1)
-							console.log("Many ray-surface intersection points!!");
-					});
-					
-					if(contour3dPoints.length <= 1)
-					{
-						if(contour3dPoints.length == i)
+						var contour3dPoints = [];
+
+						var lineWidth =  3;
+						var color = 0x00ff00;
+
+						var raycaster = new THREE.Raycaster();
+		
+						contour.forEach(function(point, index, array)
 						{
-							scene.add(createSphere(contour3dPoints[0], color));
-						}
-					}
-					else
-					{
-						var curve = new THREE.CatmullRomCurve3(contour3dPoints);
-						var points = curve.getPoints(contour3dPoints.length);
-						var geometry = new THREE.BufferGeometry().setFromPoints(points);
-						var material = new THREE.LineBasicMaterial( { color : color , linewidth : lineWidth} );
-						var curveObject = new THREE.Line( geometry, material );
+							var p = new THREE.Vector3(point.u, 0, point.v);
+							raycaster.set(p, planeNormal);
+							var intersectedObjects = raycaster.intersectObject(bezierSurface);
+							if(intersectedObjects.length > 0)
+								contour3dPoints.push(intersectedObjects[0].point);
+							if(intersectedObjects.length > 1)
+								console.log("Many ray-surface intersection points!!");
+						});
 						
-						scene.add(curveObject);
-					}
-				}); 
+						if(contour3dPoints.length <= 1)
+						{
+							if(contour3dPoints.length == i)
+							{
+								scene.add(createSphere(contour3dPoints[0], color));
+							}
+						}
+						else
+						{
+							var curve = new THREE.CatmullRomCurve3(contour3dPoints);
+							var points = curve.getPoints(contour3dPoints.length);
+							var geometry = new THREE.BufferGeometry().setFromPoints(points);
+							var material = new THREE.LineBasicMaterial( { color : color , linewidth : lineWidth} );
+							var curveObject = new THREE.Line( geometry, material );
+							
+							scene.add(curveObject);
+						}
+					}); 
+				}
+
+				calculateReflectionsForRarius(new THREE.Vector3(0, 0, 0));
+				calculateReflectionsForRarius(new THREE.Vector3(0, controls.radius, 0));
+				calculateReflectionsForRarius(new THREE.Vector3(0, -controls.radius, 0));
 
 				if(controls.drawDebugElements)
 				{
@@ -643,27 +649,16 @@
                         scene.add(controlSpheres[i * meshSize + j]);
                         
                         if(j > 0)
-                        {
                             drawLine(controlPoints[i][j - 1], controlPoints[i][j], linesColor);
-                        }
                         
                         if(i > 0)
-                        {
                             drawLine(controlPoints[i - 1][j], controlPoints[i][j], linesColor);
-                        }
                     }
                 }
             }
 
             function drawLine(p1, p2, color, width = 1)
             {
-            	if(controls.log)
-				{
-	            	console.log("Line with points :");
-					console.log(p1);
-					console.log(p2);
-				}
-
             	drawLineMultiplePoints([p1, p2], color, width);
             }
             
@@ -682,7 +677,7 @@
 
             function drawSourceCylinder()
             {
-				var cylinderGeometry = new THREE.CylinderGeometry(5, 5, 20, 32);
+				var cylinderGeometry = new THREE.CylinderGeometry(controls.radius, controls.radius, 20, 32);
 				cylinderGeometry.applyMatrix(new THREE.Matrix4().makeRotationX(Math.PI / 2));
 				var opacity = 1.0;
 				if(controls.drawDebugElements)
@@ -807,12 +802,6 @@
             	if(e.code == "Space")
             	{
             		controls.drawDebugElements = !controls.drawDebugElements;
-            		update();
-            	}
-
-            	if(e.code == "KeyL")
-            	{
-            		controls.log = !controls.log;
             		update();
             	}
             }
