@@ -53,6 +53,8 @@
 				this.asWireframe = false;
 				this.drawAuxSurface = true;
 				this.drawDebugElements = false;
+				this.projectCurves = true;
+				this.drawPlane = true;
 			}
 
 			var gui = new dat.GUI({width:370});
@@ -118,6 +120,15 @@
 			{
 				update();
 			});
+			gui.add(controls, "projectCurves").name("Project curves").onChange(function(v)
+			{
+				update();
+			});
+			gui.add(controls, "drawPlane").name("Draw plane").onChange(function(v)
+			{
+				update();
+			});
+			
 			
 
 			var bezierCurveDivisions = 50;
@@ -374,7 +385,8 @@
                 var bezierSurfaceMaterial = new THREE.MeshLambertMaterial({color: color, wireframe: controls.asWireframe});
                 var bezierSurface = new THREE.Mesh(bezierSurfaceGeometry, bezierSurfaceMaterial);
                 bezierSurface.material.side = THREE.DoubleSide;
-                scene.add(bezierSurface);
+                if(controls.drawPlane)
+                	scene.add(bezierSurface);
 
                 //distance surface
                 var sourcePoint = sourceCylinderPos.clone();
@@ -542,6 +554,8 @@
 	                	}
 	                }
 
+	                console.log("contours count before projection: " + contours.length);
+
 					contours.forEach(function(contour, index, array)
 					{
 						var contour3dPoints = [];
@@ -564,12 +578,22 @@
 										contour3dPoints.push([]);
 								}
 
-								contour3dPoints[i].push(intersectedObjects[i].point);
+								if(controls.projectCurves)
+								{
+									contour3dPoints[i].push(intersectedObjects[i].point);
+								}
+								else
+								{
+									contour3dPoints[i].push(p);
+								}
 							}
 						});
 
+						console.log("contours count : " + contour3dPoints.length);
+
 						contour3dPoints.forEach(function(countourPoints, index, array)
 						{
+							console.log("contour length : " + countourPoints.length);
 							if(countourPoints.length <= 1)
 							{
 								if(countourPoints.length == 1)
@@ -579,7 +603,7 @@
 							}
 							else
 							{
-								var curve = new THREE.CatmullRomCurve3(countourPoints);
+								var curve = new THREE.CatmullRomCurve3(countourPoints, false);
 								var points = curve.getPoints(countourPoints.length);
 								var geometry = new THREE.BufferGeometry().setFromPoints(points);
 								var material = new THREE.LineBasicMaterial( { color : color , linewidth : lineWidth} );
@@ -588,12 +612,17 @@
 								scene.add(curveObject);
 							}
 						});
+
+						console.log("=========================");
 					}); 
 				}
 
 				calculateReflectionsForRarius(new THREE.Vector3(0, 0, 0));
-				calculateReflectionsForRarius(new THREE.Vector3(0, controls.radius, 0));
-				calculateReflectionsForRarius(new THREE.Vector3(0, -controls.radius, 0));
+				//drawPlane(0);
+				//calculateReflectionsForRarius(new THREE.Vector3(0, controls.radius, 0));
+				//drawPlane(controls.radius);
+				//calculateReflectionsForRarius(new THREE.Vector3(0, -controls.radius, 0));
+				//drawPlane(-controls.radius);
 
 				if(controls.drawDebugElements)
 				{
@@ -698,7 +727,17 @@
 				sourceCylinder.position.z = sourceCylinderPos.z;
 				scene.add(sourceCylinder);
 			}
-            
+
+			function drawPlane(y = 10)
+            {
+            	var planeGeometry = new THREE.PlaneGeometry(60, 60);
+            	planeGeometry.applyMatrix(new THREE.Matrix4().makeRotationX(Math.PI / 2));
+            	planeGeometry.applyMatrix(new THREE.Matrix4().makeTranslation(20, y, 0));
+				var material = new THREE.MeshLambertMaterial({color: 0xff00ff, wireframe: controls.asWireframe});
+				var plane = new THREE.Mesh(planeGeometry, material);
+				scene.add(plane);
+            }
+
             function handleControlSphereClick(selectedSphere)
             {
             	console.log("Control point shpere clicked");
