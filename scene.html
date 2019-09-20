@@ -390,9 +390,9 @@
 
                 //distance surface
                 var sourcePoint = sourceCylinderPos.clone();
-                sourcePoint.z -= sourceCylinder.geometry.parameters.height / 2;
+                sourcePoint.z -= sourceCylinder.geometry.parameters.height;
                 var sourceEndPoint = sourceCylinderPos.clone();
-                sourceEndPoint.z += sourceCylinder.geometry.parameters.height / 2;
+                sourceEndPoint.z += sourceCylinder.geometry.parameters.height;
                 var sourceDir = new THREE.Vector3();
                 sourceDir.subVectors(sourceEndPoint, sourcePoint);
 
@@ -412,6 +412,12 @@
                 	{
 						if(typeof distanceSurfaceVertices[vertexIndex] === "undefined")
 						{
+							if(controls.drawDebugElements)
+							{	
+    	            			var arrowHelper = new THREE.ArrowHelper(face.vertexNormals[faceVertexIndex], uvSurfaceVertices[vertexIndex], 5, 0x000000);
+								scene.add(arrowHelper);
+							}
+
 							var bxn = new THREE.Vector3();
 							bxn.crossVectors(sourceDir, face.vertexNormals[faceVertexIndex]);
 
@@ -468,9 +474,6 @@
 	                });
 
 	                var contours = [];
-	                var currentIntersection;
-
-	                var previousIntersection;
 
 	                function getIntersectionInexesForEdge(edgeIndex)
 	                {
@@ -554,12 +557,18 @@
 	                	}
 	                }
 
+	                intersectionsInfo.forEach(function(intersection, index, array)
+	                {
+	                	if(!intersection.checked)
+	                		console.log("Not checked intersection!");
+	                });
+
 	                console.log("contours count before projection: " + contours.length);
 
+					
 					contours.forEach(function(contour, index, array)
 					{
 						var contour3dPoints = [];
-
 						var lineWidth =  3;
 						var color = 0x00ff00;
 
@@ -570,6 +579,15 @@
 							var p = new THREE.Vector3(point.u, 0, point.v);
 							raycaster.set(p, planeNormal);
 							var intersectedObjects = raycaster.intersectObject(bezierSurface);
+							
+							if(intersectedObjects.length == 0)
+							{
+								var negatedNormal = planeNormal;
+								negatedNormal.multiplyScalar(-1);
+								raycaster.set(p, negatedNormal);
+								intersectedObjects = raycaster.intersectObject(bezierSurface);
+							}
+
 							for(var i = 0; i < intersectedObjects.length; i++)
 							{
 								if(contour3dPoints.length <= i)
@@ -589,11 +607,8 @@
 							}
 						});
 
-						console.log("contours count : " + contour3dPoints.length);
-
 						contour3dPoints.forEach(function(countourPoints, index, array)
 						{
-							console.log("contour length : " + countourPoints.length);
 							if(countourPoints.length <= 1)
 							{
 								if(countourPoints.length == 1)
@@ -612,17 +627,18 @@
 								scene.add(curveObject);
 							}
 						});
-
-						console.log("=========================");
 					}); 
 				}
 
 				calculateReflectionsForRarius(new THREE.Vector3(0, 0, 0));
-				//drawPlane(0);
-				//calculateReflectionsForRarius(new THREE.Vector3(0, controls.radius, 0));
-				//drawPlane(controls.radius);
-				//calculateReflectionsForRarius(new THREE.Vector3(0, -controls.radius, 0));
-				//drawPlane(-controls.radius);
+				calculateReflectionsForRarius(new THREE.Vector3(0, controls.radius, 0));
+				calculateReflectionsForRarius(new THREE.Vector3(0, -controls.radius, 0));
+				if(controls.drawDebugElements)
+				{
+					drawPlane(0);
+					//drawPlane(controls.radius);
+					//drawPlane(-controls.radius);
+				}
 
 				if(controls.drawDebugElements)
 				{
