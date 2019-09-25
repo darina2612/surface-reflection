@@ -169,35 +169,16 @@
 				return !equal(v.dot(planeNormal), 0);
 			}
 
-			function getLinePlaneIntersectionPoint(planeNormal, planePoint, lineStart, lineEnd)
+			function getLinePlaneIntersectionPoint(planeNormal, c, lineStart, lineEnd)
 			{
 				if(!checkLinePlaneIntersection(planeNormal, lineStart, lineEnd))
 					return null;
 
-				var v1p0 =  new THREE.Vector3();
-				v1p0.subVectors(planePoint, lineStart);
-
-				var v1v2 =  new THREE.Vector3();
-				v1v2.subVectors(lineEnd, lineStart);
-				var numer = v1p0.dot(planeNormal);
-				var denom = v1v2.dot(planeNormal);
-				var d =  numer / denom;
-				
+				var plane = new THREE.Plane(planeNormal, c);
 				var intersectionPoint = new THREE.Vector3();
-				intersectionPoint.addScaledVector(v1v2, d);
-				intersectionPoint.add(lineStart);
 
-				var minX = Math.min(lineStart.x, lineEnd.x);
-				var maxX = Math.max(lineStart.x, lineEnd.x);
-				var minZ = Math.min(lineStart.z, lineEnd.z);
-				var maxZ = Math.max(lineStart.z, lineEnd.z);
-
-				var advance = 0.0001;
-				if(intersectionPoint.x < minX - advance || intersectionPoint.x > maxX + advance ||
-				   intersectionPoint.z < minZ - advance || intersectionPoint.z > maxZ + advance)
-				{
+				if(typeof plane.intersectLine(new THREE.Line3(lineStart, lineEnd), intersectionPoint) === "undefined")
 					return null;
-				}
 
 				return intersectionPoint;
 			}
@@ -451,7 +432,7 @@
                 	scene.add(distaceSurface);
             	}
 
-            	function calculateReflectionsForRarius(planePoint)
+            	function calculateReflectionsForRarius(c)
             	{
 	                var planeNormal = new THREE.Vector3(0, 1, 0);
 
@@ -464,7 +445,7 @@
 
 	                	if(checkLinePlaneIntersection(planeNormal, edgeStart, edgeEnd))
 	                	{
-	                		var intersectionPoint = getLinePlaneIntersectionPoint(planeNormal, planePoint, edgeStart, edgeEnd);
+	                		var intersectionPoint = getLinePlaneIntersectionPoint(planeNormal, c, edgeStart, edgeEnd);
 	                		if(intersectionPoint != null)
 	                		{
 	                			intersectionsInfo.push(new IntersectionInfo(intersectionPoint.x, intersectionPoint.z, index));
@@ -556,15 +537,6 @@
 			                } 
 	                	}
 	                }
-
-	                intersectionsInfo.forEach(function(intersection, index, array)
-	                {
-	                	if(!intersection.checked)
-	                		console.log("Not checked intersection!");
-	                });
-
-	                console.log("contours count before projection: " + contours.length);
-
 					
 					contours.forEach(function(contour, index, array)
 					{
@@ -630,9 +602,9 @@
 					}); 
 				}
 
-				calculateReflectionsForRarius(new THREE.Vector3(0, 0, 0));
-				calculateReflectionsForRarius(new THREE.Vector3(0, controls.radius, 0));
-				calculateReflectionsForRarius(new THREE.Vector3(0, -controls.radius, 0));
+				calculateReflectionsForRarius(0);
+				calculateReflectionsForRarius(controls.radius);
+				calculateReflectionsForRarius(-controls.radius);
 				if(controls.drawDebugElements)
 				{
 					drawPlane(0);
