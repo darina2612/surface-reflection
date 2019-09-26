@@ -47,7 +47,6 @@
 				this.color = 0xff0000;
 				this.radius = 5;
 				this.showControlPoints = true;
-				this.bezierCurves = 51;
 				this.interactiveCamera = true;
 				this.axisHelper = false;
 				this.asWireframe = false;
@@ -78,22 +77,6 @@
 			radiusController.onFinishChange(function(n)
 			{
 				console.log("radius::onFinishChange");
-
-				cameraControls.enabled = true;
-				update();
-				renderScene();
-			});
-			
-			var curvesController = gui.add(controls, "bezierCurves").min(10).max(100).step(1).name("Bezier Curves");
-			curvesController.onChange(function(n)
-			{
-				console.log("bezierCurves::onChange");
-				cameraControls.enabled = false;
-
-			});
-			curvesController.onFinishChange(function(n)
-			{
-				console.log("bezierCurves::onFinishChange");
 
 				cameraControls.enabled = true;
 				update();
@@ -131,7 +114,7 @@
 			
 			
 
-			var bezierCurveDivisions = 50;
+			//var bezierCurveDivisions = 50;
             var controlPoints = [];
 
             var meshSize = 4;
@@ -182,33 +165,62 @@
 
 				return intersectionPoint;
 			}
-                
-            function drawBezierSurface(controlPoints, bezierCurveDivisions, color)
-            {
-                var basicBezierModel = [];  // 4 bezier curves calculated from bezier control points
 
-                // calculating basic bezier model (main 4 bezier curves)
+			function bezierCurvePoints(controlPoints, step = 0.1)
+			{
+				var curvePoints = [];
+
+				var currentIterationPoints = controlPoints.slice();
+				var nextIterationPoints = Array();
+	
+				for(var t = 0.0; t < 1.0; t += step)
+				{
+					while(nextIterationPoints.length != 1)
+					{
+						nextIterationPoints = Array();
+						for(var i = 0; i < currentIterationPoints.length - 1; ++i)
+						{
+							var x = (currentIterationPoints[i].x * (1 - t)) + (currentIterationPoints[i + 1].x * t); 
+							var y = (currentIterationPoints[i].y * (1 - t)) + (currentIterationPoints[i + 1].y * t);
+							var z = (currentIterationPoints[i].z * (1 - t)) + (currentIterationPoints[i + 1].z * t);
+				
+							nextIterationPoints.push(new THREE.Vector3(x, y, z));
+						}
+						currentIterationPoints = nextIterationPoints;
+					}
+		
+					curvePoints.push(nextIterationPoints[0].clone());
+		
+					currentIterationPoints = controlPoints.slice();
+					nextIterationPoints = Array();
+				}
+
+				return curvePoints;
+			}
+                
+            function drawBezierSurface(controlPoints, color)
+            {
+                var basicBezierModel = [];  //n bezier curves calculated from bezier control points
+
+                // calculating basic bezier model (main n bezier curves)
                 for (var i = 0; i < controlPoints.length; i++)
                 {
-                    var bezier = new THREE.CubicBezierCurve3(controlPoints[i][0],
-                                                            controlPoints[i][1],
-                                                            controlPoints[i][2],
-                                                            controlPoints[i][3]);
-                
-                    basicBezierModel.push(bezier.getPoints(bezierCurveDivisions));
+                    basicBezierModel.push(bezierCurvePoints(controlPoints[i]));
+                    bezierCurveDivisions = basicBezierModel[0].length - 1;
                 }
 
                 var bezierCurvesVertices = [];
 
-                // calculating full bezier model (50 bezier curves in one direction, each containing 50 vertices)
-                for (var i = 0; i <= bezierCurveDivisions; i++)
-                {
-                    var bezier = new THREE.CubicBezierCurve3(basicBezierModel[0][i],
-                                                           	basicBezierModel[1][i],
-                                                            basicBezierModel[2][i],
-                                                            basicBezierModel[3][i]);
+				for (var i = 0; i < bezierCurveDivisions; i++)
+				{
+					var points = [];
+                	basicBezierModel.forEach(function(pointArr, index, array)
+                	{
+                		points.push(pointArr[i]);
+                	});
 
-                    bezierCurvesVertices = bezierCurvesVertices.concat(bezier.getPoints(bezierCurveDivisions));
+
+                 	bezierCurvesVertices = bezierCurvesVertices.concat(bezierCurvePoints(points));
                 }
 
                 // now we've got full bezier model, it's time to create bezier surface and add it to the scene
@@ -282,10 +294,30 @@
                 {
                     for (var j = 0; j < bezierCurveDivisions; j++)
                     {
+                    	function checkIndex(v)
+                    	{
+                    		if(v > bezierSurfaceVertices.length - 1)
+                    		{
+                    			console.log("Out of range : " + v);
+                    			return false;
+                    		}
+
+                    		return true;
+                    	}
+                    	function check(v1, v2, v3)
+                    	{
+                    		return
+                    		checkIndex(v1) &&
+                    		checkIndex(v2) &&
+                    		checkIndex(v3);
+                    	}
+
                         v1 = i * (bezierCurveDivisions + 1) + j;
                         v2 = (i + 1) * (bezierCurveDivisions + 1) + j; 
                         v3 = i * (bezierCurveDivisions + 1) + (j + 1); 
                         bezierSurfaceFaces.push(new THREE.Face3(v1, v2, v3));
+
+                        if(!check(v1, v2, v3)) continue;
 
                         //e1
                         var f1 = currentFaceIndex - 1;
@@ -312,6 +344,9 @@
                         v2 = (i + 1) * (bezierCurveDivisions + 1) + (j + 1);
                         v3 = i * (bezierCurveDivisions + 1) + (j + 1);
                         bezierSurfaceFaces.push(new THREE.Face3(v1, v2, v3));
+
+                        check(v1, v2, v3);
+                        if(!check(v1, v2, v3)) continue;
 
                         currentFaceIndex++;
 
@@ -540,13 +575,15 @@
 							{
 								if(contour3dPoints.length <= i)
 								{
-									for(var j = 0; j <= i - contour3dPoints.length; j++)
+									for(var j = 0; j <= 0;/*i - contour3dPoints.length;*/ j++){
 										contour3dPoints.push([]);
+									}
 								}
 
 								if(controls.projectCurves)
 								{
-									contour3dPoints[i].push(intersectedObjects[i].point);
+									if(i == 0)
+										contour3dPoints[i].push(intersectedObjects[i].point);
 								}
 								else
 								{
@@ -831,7 +868,7 @@
 
 				drawSourceCylinder();
 
-				drawBezierSurface(controlPoints, controls.bezierCurves - 1, controls.color);
+				drawBezierSurface(controlPoints, controls.color);
             	var controlMeshColor = 0x000000;
             	if(controls.showControlPoints)
             		drawControlMesh(controlPoints, controlPointsSpheres, controlMeshColor, controlMeshColor);
