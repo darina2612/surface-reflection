@@ -182,24 +182,6 @@
 
 				return intersectionPoint;
 			}
-			
-            function drawCubicBezier(controlPoints, color)
-            {
-                var curve = new THREE.CubicBezierCurve3(controlPoints[0], controlPoints[1], controlPoints[2], controlPoints[3]);
-                var points = curve.getPoints(50);
-                var geometry = new THREE.Geometry();
-
-                for(var i = 0; i < points.length; i++)
-                {
-                    geometry.vertices.push(points[i]);  
-                }
-                
-                var material = new THREE.LineBasicMaterial({ color : color });
-
-                var curveObject = new THREE.Line( geometry, material);
-                
-                scene.add(curveObject);
-            }
                 
             function drawBezierSurface(controlPoints, bezierCurveDivisions, color)
             {
@@ -393,12 +375,6 @@
                 	{
 						if(typeof distanceSurfaceVertices[vertexIndex] === "undefined")
 						{
-							if(controls.drawDebugElements)
-							{	
-    	            			var arrowHelper = new THREE.ArrowHelper(face.vertexNormals[faceVertexIndex], uvSurfaceVertices[vertexIndex], 5, 0x000000);
-								scene.add(arrowHelper);
-							}
-
 							var bxn = new THREE.Vector3();
 							bxn.crossVectors(sourceDir, face.vertexNormals[faceVertexIndex]);
 
