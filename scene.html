@@ -634,6 +634,109 @@
                 scene.add(lightAbove);
             }
 
+            function drawBezierTriangularSurface(controlPoints, color)
+            {
+            	class rst
+            	{
+            		constructor(r, s, t)
+            		{
+            			this.r = r;
+            			this.s = s;
+            			this.t = t;
+            		}
+            	}
+
+            	class triangleIndices
+            	{
+            		constructor(a, b, c)
+            		{
+            			this.a = a;
+            			this.b = b;
+            			this.c = c;
+            		}
+            	}
+
+            	function getBarycentricCoords(n)
+            	{
+    				let rst = [];
+    				for(let i = 0; i <= n; i++)
+    				{
+    					for(let j= 0; j <= n - i; j++)
+    					{
+     						let s = (j / n);
+      						let t = (i / n);    
+      						let r = 1 - s - t;
+      						rst.push(new rst(r, s, t));    
+    					}
+    				}
+
+    				return rst;
+  				}
+
+  				function genTrianglesIndexes(n)
+  				{
+    				let st = 0; 
+    				let m = n;  
+    				let triangles = [];
+
+    				for(let j = n; j > 0; j--)
+    				{    
+      					for(let i = 0; i < m; i++)
+      					{    
+        					triangles.push([st + i, st + i + 1, st + m + i + 1]);
+        					if(i < m - 1)
+        						triangles.push(triangleIndices(st + i + 1, st + m + i + 2, st + m + i + 1));
+      					}
+     					m--;
+      					st += j + 1;  
+    				}
+
+    				return triangles;
+  				}
+
+  				function bernstein(i, j, k, r, s, t, n = 3)
+  				{
+    				const f = x => x ? f(x - 1) * x : 1; // number fractional f(4)=1*2*3*4=24    
+    				return r**i * s**j * t**k * f(n) / (f(i) * f(j) * f(k));  
+  				}
+
+  				function calcCubicBezierTriangleValue(controlPoints, r, s, t)
+  				{
+    				let p = controlPoints, b = [];
+
+    				b[0] = bernstein(0,0,3,r,s,t); // p[0]=p003
+    				b[1] = bernstein(2,0,1,r,s,t); // p[1]=p201 
+    				b[2] = bernstein(1,0,2,r,s,t); // p[2]=p102
+    				b[3] = bernstein(3,0,0,r,s,t); // p[3]=p300
+    				b[4] = bernstein(2,1,0,r,s,t); // p[4]=p210
+    				b[5] = bernstein(1,2,0,r,s,t); // p[5]=p120
+    				b[6] = bernstein(0,3,0,r,s,t); // p[6]=p030
+    				b[7] = bernstein(0,2,1,r,s,t); // p[7]=p021
+   					b[8] = bernstein(0,1,2,r,s,t); // p[8]=p012
+    				b[9] = bernstein(1,1,1,r,s,t); // p[9]=p111
+    
+    				let x = 0, y = 0, z = 0;
+    				for(let i = 0; i <= 9; i++)
+    				{
+      					x += p[i].x * b[i];
+      					y += p[i].y * b[i];
+      					z += p[i].z * b[i];
+    				}
+
+    				return { x:x, y:y, z:z };
+  				}
+
+            	genTrianglesForCubicBezierTriangle(n, controlPoints)
+            	{
+    				let barycentricCoords = getBarycentricCoords(n); // domain in barycentric coordinates   
+    				let trianglesIndexes = genTrianglesIndexes(n); // indexes of triangles (in bar array)
+        
+    				let value= bar.map(x => this.calcCubicBezierTriangleValue(controlPoints,...x));  // Calc Bezier triangle vertex for each domain (bar) point    
+    				let tv= ti.map(tr=> tr.map(x=>val[x]) );         // generate triangles using their indexes (ti) and val    
+    				return tv.map(t=> ({ points: t, color: null}) ); // map triangles to proper format (color=null gives wireframe)
+    			}
+    		}
+
             function createSphere(pos, color, name = "", radius = 0.7, )
             {
             	var sphereGeometry = new THREE.SphereGeometry(radius, 10, 10);
