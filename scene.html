@@ -128,6 +128,17 @@
             	}
             }
 
+            var triangleControlPoints = [new THREE.Vector3(-16, -8, 0), 
+    									 new THREE.Vector3(8, -12, 0), // p201
+      									 new THREE.Vector3(-8, -12, 0), // p102    
+      									 new THREE.Vector3(16, -8, 0), // p300 GREEN
+      									 new THREE.Vector3(12, -6, -8), // p210
+      									 new THREE.Vector3(8, 6, -8), // p120
+      									 new THREE.Vector3(0, 12, 0), // p030 BLUE
+      									 new THREE.Vector3(-8, 6, -8), // p021
+      									 new THREE.Vector3(-12, -6, -8), // p012
+      									 new THREE.Vector3(0, 0, 8)];
+
             var controlPointsSpheres = [];
 
 			var sourceCylinder;
@@ -646,19 +657,9 @@
             		}
             	}
 
-            	class triangleIndices
-            	{
-            		constructor(a, b, c)
-            		{
-            			this.a = a;
-            			this.b = b;
-            			this.c = c;
-            		}
-            	}
-
             	function getBarycentricCoords(n)
             	{
-    				let rst = [];
+    				var rstArr = [];
     				for(let i = 0; i <= n; i++)
     				{
     					for(let j= 0; j <= n - i; j++)
@@ -666,11 +667,11 @@
      						let s = (j / n);
       						let t = (i / n);    
       						let r = 1 - s - t;
-      						rst.push(new rst(r, s, t));    
+      						rstArr.push(new rst(r, s, t));    
     					}
     				}
 
-    				return rst;
+    				return rstArr;
   				}
 
   				function genTrianglesIndexes(n)
@@ -683,9 +684,9 @@
     				{    
       					for(let i = 0; i < m; i++)
       					{    
-        					triangles.push([st + i, st + i + 1, st + m + i + 1]);
+        					triangles.push(new THREE.Face3(st + i, st + i + 1, st + m + i + 1));
         					if(i < m - 1)
-        						triangles.push(triangleIndices(st + i + 1, st + m + i + 2, st + m + i + 1));
+        						triangles.push(new THREE.Face3(st + i + 1, st + m + i + 2, st + m + i + 1));
       					}
      					m--;
       					st += j + 1;  
@@ -694,26 +695,31 @@
     				return triangles;
   				}
 
-  				function bernstein(i, j, k, r, s, t, n = 3)
+  				function bernstein(i, j, k, rst, n = 3)
   				{
-    				const f = x => x ? f(x - 1) * x : 1; // number fractional f(4)=1*2*3*4=24    
-    				return r**i * s**j * t**k * f(n) / (f(i) * f(j) * f(k));  
+  					function fact(n)
+  					{
+  						if(n <= 1)
+  							return 1;
+  						return n * fact(n - 1);
+  					}
+    				return rst.r**i * rst.s**j * rst.t**k * fact(n) / (fact(i) * fact(j) * fact(k));  
   				}
 
-  				function calcCubicBezierTriangleValue(controlPoints, r, s, t)
+  				function calcCubicBezierTriangleValue(controlPoints, rst)
   				{
     				let p = controlPoints, b = [];
 
-    				b[0] = bernstein(0,0,3,r,s,t); // p[0]=p003
-    				b[1] = bernstein(2,0,1,r,s,t); // p[1]=p201 
-    				b[2] = bernstein(1,0,2,r,s,t); // p[2]=p102
-    				b[3] = bernstein(3,0,0,r,s,t); // p[3]=p300
-    				b[4] = bernstein(2,1,0,r,s,t); // p[4]=p210
-    				b[5] = bernstein(1,2,0,r,s,t); // p[5]=p120
-    				b[6] = bernstein(0,3,0,r,s,t); // p[6]=p030
-    				b[7] = bernstein(0,2,1,r,s,t); // p[7]=p021
-   					b[8] = bernstein(0,1,2,r,s,t); // p[8]=p012
-    				b[9] = bernstein(1,1,1,r,s,t); // p[9]=p111
+    				b[0] = bernstein(0, 0, 3, rst.r, rst.s, rst.t); // p[0]=p003
+    				b[1] = bernstein(2, 0, 1, rst.r, rst.s, rst.t); // p[1]=p201 
+    				b[2] = bernstein(1, 0, 2, rst.r, rst.s, rst.t); // p[2]=p102
+    				b[3] = bernstein(3, 0, 0, rst.r, rst.s, rst.t); // p[3]=p300
+    				b[4] = bernstein(2, 1, 0, rst.r, rst.s, rst.t); // p[4]=p210
+    				b[5] = bernstein(1, 2, 0, rst.r, rst.s, rst.t); // p[5]=p120
+    				b[6] = bernstein(0, 3, 0, rst.r, rst.s, rst.t); // p[6]=p030
+    				b[7] = bernstein(0, 2, 1, rst.r, rst.s, rst.t); // p[7]=p021
+   					b[8] = bernstein(0, 1, 2, rst.r, rst.s, rst.t); // p[8]=p012
+    				b[9] = bernstein(1, 1, 1, rst.r, rst.s, rst.t); // p[9]=p111
     
     				let x = 0, y = 0, z = 0;
     				for(let i = 0; i <= 9; i++)
@@ -723,18 +729,34 @@
       					z += p[i].z * b[i];
     				}
 
-    				return { x:x, y:y, z:z };
+    				return new THREE.Vector3(x, y, z);
   				}
 
-            	genTrianglesForCubicBezierTriangle(n, controlPoints)
+            	function genTrianglesForCubicBezierTriangle(n, controlPoints, geom)
             	{
-    				let barycentricCoords = getBarycentricCoords(n); // domain in barycentric coordinates   
-    				let trianglesIndexes = genTrianglesIndexes(n); // indexes of triangles (in bar array)
+    				var barycentricCoords = getBarycentricCoords(n); // domain in barycentric coordinates   
+    				var trianglesIndexes = genTrianglesIndexes(n); // indexes of triangles (in bar array)
         
-    				let value= bar.map(x => this.calcCubicBezierTriangleValue(controlPoints,...x));  // Calc Bezier triangle vertex for each domain (bar) point    
-    				let tv= ti.map(tr=> tr.map(x=>val[x]) );         // generate triangles using their indexes (ti) and val    
-    				return tv.map(t=> ({ points: t, color: null}) ); // map triangles to proper format (color=null gives wireframe)
+    				var points = [];
+    				barycentricCoords.forEach(function (rst, index, array)
+    				{
+    					points.push(calcCubicBezierTriangleValue(controlPoints, rst));
+    				}); // bar.map(x => this.calcCubicBezierTriangleValue(controlPoints,...x));  // Calc 
+
+    				geom.vertices = points;
+    				geom.faces = trianglesIndexes;
     			}
+
+    			var triangularBezierSurfaceGeometry = new THREE.Geometry();
+    			genTrianglesForCubicBezierTriangle(25, controlPoints, triangularBezierSurfaceGeometry);
+                
+                triangularBezierSurfaceGeometry.computeFaceNormals();
+                triangularBezierSurfaceGeometry.computeVertexNormals();
+                var bezierSurfaceMaterial = new THREE.MeshLambertMaterial({color: color, wireframe: controls.asWireframe});
+                var triangularBezierSurface = new THREE.Mesh(triangularBezierSurfaceGeometry, bezierSurfaceMaterial);
+                triangularBezierSurface.material.side = THREE.DoubleSide;
+                if(controls.drawPlane)
+                	scene.add(triangularBezierSurface);
     		}
 
             function createSphere(pos, color, name = "", radius = 0.7, )
@@ -964,7 +986,8 @@
 
 				drawSourceCylinder();
 
-				drawBezierSurface(controlPoints, controls.color);
+				drawBezierTriangularSurface(triangleControlPoints, controls.color);
+				//drawBezierSurface(controlPoints, controls.color);
             	var controlMeshColor = 0x000000;
             	if(controls.showControlPoints)
             		drawControlMesh(controlPoints, controlPointsSpheres, controlMeshColor, controlMeshColor);
