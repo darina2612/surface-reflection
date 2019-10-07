@@ -710,16 +710,16 @@
   				{
     				let p = controlPoints, b = [];
 
-    				b[0] = bernstein(0, 0, 3, rst.r, rst.s, rst.t); // p[0]=p003
-    				b[1] = bernstein(2, 0, 1, rst.r, rst.s, rst.t); // p[1]=p201 
-    				b[2] = bernstein(1, 0, 2, rst.r, rst.s, rst.t); // p[2]=p102
-    				b[3] = bernstein(3, 0, 0, rst.r, rst.s, rst.t); // p[3]=p300
-    				b[4] = bernstein(2, 1, 0, rst.r, rst.s, rst.t); // p[4]=p210
-    				b[5] = bernstein(1, 2, 0, rst.r, rst.s, rst.t); // p[5]=p120
-    				b[6] = bernstein(0, 3, 0, rst.r, rst.s, rst.t); // p[6]=p030
-    				b[7] = bernstein(0, 2, 1, rst.r, rst.s, rst.t); // p[7]=p021
-   					b[8] = bernstein(0, 1, 2, rst.r, rst.s, rst.t); // p[8]=p012
-    				b[9] = bernstein(1, 1, 1, rst.r, rst.s, rst.t); // p[9]=p111
+    				b[0] = bernstein(0, 0, 3, rst); // p[0]=p003
+    				b[1] = bernstein(2, 0, 1, rst); // p[1]=p201 
+    				b[2] = bernstein(1, 0, 2, rst); // p[2]=p102
+    				b[3] = bernstein(3, 0, 0, rst); // p[3]=p300
+    				b[4] = bernstein(2, 1, 0, rst); // p[4]=p210
+    				b[5] = bernstein(1, 2, 0, rst); // p[5]=p120
+    				b[6] = bernstein(0, 3, 0, rst); // p[6]=p030
+    				b[7] = bernstein(0, 2, 1, rst); // p[7]=p021
+   					b[8] = bernstein(0, 1, 2, rst); // p[8]=p012
+    				b[9] = bernstein(1, 1, 1, rst); // p[9]=p111
     
     				let x = 0, y = 0, z = 0;
     				for(let i = 0; i <= 9; i++)
