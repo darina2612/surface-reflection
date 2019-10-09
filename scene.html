@@ -50,7 +50,7 @@
 				this.interactiveCamera = true;
 				this.axisHelper = false;
 				this.asWireframe = false;
-				this.drawAuxSurface = true;
+				this.drawAuxSurface = false;
 				this.drawDebugElements = false;
 				this.projectCurves = true;
 				this.drawPlane = true;
@@ -99,10 +99,10 @@
 			{
 				update();
 			});
-			gui.add(controls, "drawAuxSurface").name("Draw aux surface").onChange(function(v)
-			{
-				update();
-			});
+			// gui.add(controls, "drawAuxSurface").name("Draw aux surface").onChange(function(v)
+			// {
+			// 	update();
+			// });
 			gui.add(controls, "projectCurves").name("Project curves").onChange(function(v)
 			{
 				update();
@@ -174,6 +174,27 @@
 				return intersectionPoint;
 			}
 
+			function bezierCurvePoint(currentIterationPoints, t)
+			{
+				var nextIterationPoints = [];
+
+				while(nextIterationPoints.length != 1)
+				{
+					nextIterationPoints = Array();
+					for(var i = 0; i < currentIterationPoints.length - 1; ++i)
+					{
+						var x = (currentIterationPoints[i].x * (1 - t)) + (currentIterationPoints[i + 1].x * t); 
+						var y = (currentIterationPoints[i].y * (1 - t)) + (currentIterationPoints[i + 1].y * t);
+						var z = (currentIterationPoints[i].z * (1 - t)) + (currentIterationPoints[i + 1].z * t);
+				
+						nextIterationPoints.push(new THREE.Vector3(x, y, z));
+					}
+					currentIterationPoints = nextIterationPoints;
+				}
+
+				return nextIterationPoints[0].clone();
+			}
+
 			function bezierCurvePoints(controlPoints, divisions = 51)
 			{
 				var curvePoints = [];
@@ -185,27 +206,48 @@
 	
 				for(var t = 0.0; t <= 1.001; t += step)
 				{
-					while(nextIterationPoints.length != 1)
-					{
-						nextIterationPoints = Array();
-						for(var i = 0; i < currentIterationPoints.length - 1; ++i)
-						{
-							var x = (currentIterationPoints[i].x * (1 - t)) + (currentIterationPoints[i + 1].x * t); 
-							var y = (currentIterationPoints[i].y * (1 - t)) + (currentIterationPoints[i + 1].y * t);
-							var z = (currentIterationPoints[i].z * (1 - t)) + (currentIterationPoints[i + 1].z * t);
-				
-							nextIterationPoints.push(new THREE.Vector3(x, y, z));
-						}
-						currentIterationPoints = nextIterationPoints;
-					}
-		
-					curvePoints.push(nextIterationPoints[0].clone());
-		
-					currentIterationPoints = controlPoints.slice();
-					nextIterationPoints = Array();
+					curvePoints.push(bezierCurvePoint(controlPoints.slice(), t));
 				}
 
 				return curvePoints;
+			}
+
+			function getSurfacePointAt(u, v, controlPoints)
+			{
+				var secondaryControlPoints = [];
+
+				controlPoints.forEach(function (controlPointsRow, index, array)
+				{
+					secondaryControlPoints.push(bezierCurvePoint(controlPointsRow, u));
+				});
+
+				return bezierCurvePoint(secondaryControlPoints, v);
+			}
+
+			class uv
+			{
+				constructor(u = 0, v = 0)
+				{
+					this.u = u;
+					this.v = v;
+				}
+			}
+
+			function getUv(divisions)
+			{
+				var uvs = [];
+
+				var step = 1.0 / divisions;
+	
+				for(var u = 0.0; u <= 1.001; u += step)
+				{
+					for(var v = 0.0; v <= 1.001; v += step)
+					{
+						uvs.push(new uv(u, v));
+					}
+				}
+
+				return uvs;
 			}
                 
             function drawBezierSurface(controlPoints, color)
@@ -232,6 +274,8 @@
 
                  	bezierCurvesVertices = bezierCurvesVertices.concat(bezierCurvePoints(points));
                 }
+
+                var uvs = getUv(bezierCurveDivisions);
 
                 // now we've got full bezier model, it's time to create bezier surface and add it to the scene
                 var bezierSurfaceVertices = bezierCurvesVertices;
@@ -422,9 +466,9 @@
 
 							var d = bxn.dot(qa) / bxn.length();
 
-							distanceSurfaceVertices[vertexIndex] = new THREE.Vector3(uvSurfaceVertices[vertexIndex].x,
-																			   		 y + d,
-																			   		 uvSurfaceVertices[vertexIndex].z);
+							distanceSurfaceVertices[vertexIndex] = new THREE.Vector3(uvs[vertexIndex].u,
+																			   		 uvs[vertexIndex].v,
+																			   		 d);
 						}
 					}
 
@@ -449,7 +493,7 @@
 
             	function calculateReflectionsForRarius(c)
             	{
-	                var planeNormal = new THREE.Vector3(0, 1, 0);
+	                var planeNormal = new THREE.Vector3(0, 0, 1);
 
 	                var intersectionsInfo = [];
 
@@ -463,7 +507,7 @@
 	                		var intersectionPoint = getLinePlaneIntersectionPoint(planeNormal, c, edgeStart, edgeEnd);
 	                		if(intersectionPoint != null)
 	                		{
-	                			intersectionsInfo.push(new IntersectionInfo(intersectionPoint.x, intersectionPoint.z, index));
+	                			intersectionsInfo.push(new IntersectionInfo(intersectionPoint.x, intersectionPoint.y, index));
 	                			edge.isdt = intersectionsInfo.length - 1;
 	                		}
 	                	}
@@ -556,78 +600,39 @@
 					contours.forEach(function(contour, index, array)
 					{
 						var contour3dPoints = [];
-						var lineWidth =  3;
-						var color = 0x00ff00;
-
-						var raycaster = new THREE.Raycaster();
-		
+						
 						contour.forEach(function(point, index, array)
 						{
-							var p = new THREE.Vector3(point.u, 0, point.v);
-							raycaster.set(p, planeNormal);
-							var intersectedObjects = raycaster.intersectObject(bezierSurface);
-							
-							if(intersectedObjects.length == 0)
-							{
-								var negatedNormal = planeNormal;
-								negatedNormal.multiplyScalar(-1);
-								raycaster.set(p, negatedNormal);
-								intersectedObjects = raycaster.intersectObject(bezierSurface);
-							}
-
-							for(var i = 0; i < intersectedObjects.length; i++)
-							{
-								if(contour3dPoints.length <= i)
-								{
-									for(var j = 0; j <= 0;/*i - contour3dPoints.length;*/ j++){
-										contour3dPoints.push([]);
-									}
-								}
-
-								if(controls.projectCurves)
-								{
-									if(i == 0)
-										contour3dPoints[i].push(intersectedObjects[i].point);
-								}
-								else
-								{
-									contour3dPoints[i].push(p);
-								}
-							}
+							contour3dPoints.push(getSurfacePointAt(point.u, point.v, controlPoints));
 						});
 
-						contour3dPoints.forEach(function(countourPoints, index, array)
+						if(contour3dPoints.length <= 1)
 						{
-							if(countourPoints.length <= 1)
+							if(contour3dPoints.length == 1)
 							{
-								if(countourPoints.length == 1)
-								{
-									scene.add(createSphere(countourPoints[0], color, "", 0.2));
-								}
+								scene.add(createSphere(contour3dPoints[0], color, "", 0.2));
 							}
-							else
-							{
-								var curve = new THREE.CatmullRomCurve3(countourPoints, false);
-								var points = curve.getPoints(countourPoints.length);
-								var geometry = new THREE.BufferGeometry().setFromPoints(points);
-								var material = new THREE.LineBasicMaterial( { color : color , linewidth : lineWidth} );
-								var curveObject = new THREE.Line( geometry, material );
+						}
+						else
+						{
+							var curve = new THREE.CatmullRomCurve3(contour3dPoints, false);
+							var points = curve.getPoints(contour3dPoints.length);
+							var geometry = new THREE.BufferGeometry().setFromPoints(points);
+
+							var lineWidth =  3;
+							var color = 0x00ff00;
+
+							var material = new THREE.LineBasicMaterial( { color : color , linewidth : lineWidth} );
+							var curveObject = new THREE.Line( geometry, material );
 							
-								scene.add(curveObject);
-							}
-						});
+							scene.add(curveObject);
+						}
 					}); 
 				}
 
 				calculateReflectionsForRarius(0);
 				calculateReflectionsForRarius(controls.radius);
 				calculateReflectionsForRarius(-controls.radius);
-				if(controls.drawDebugElements)
-				{
-					drawPlane(0);
-					//drawPlane(controls.radius);
-					//drawPlane(-controls.radius);
-				}
 
 				if(controls.drawDebugElements)
 				{
@@ -755,8 +760,8 @@
                 var bezierSurfaceMaterial = new THREE.MeshLambertMaterial({color: color, wireframe: controls.asWireframe});
                 var triangularBezierSurface = new THREE.Mesh(triangularBezierSurfaceGeometry, bezierSurfaceMaterial);
                 triangularBezierSurface.material.side = THREE.DoubleSide;
-                if(controls.drawPlane)
-                	scene.add(triangularBezierSurface);
+                // if(controls.drawPlane)
+                // 	scene.add(triangularBezierSurface);
     		}
 
             function createSphere(pos, color, name = "", radius = 0.7, )
@@ -987,7 +992,7 @@
 				drawSourceCylinder();
 
 				drawBezierTriangularSurface(triangleControlPoints, controls.color);
-				//drawBezierSurface(controlPoints, controls.color);
+				drawBezierSurface(controlPoints, controls.color);
             	var controlMeshColor = 0x000000;
             	if(controls.showControlPoints)
             		drawControlMesh(controlPoints, controlPointsSpheres, controlMeshColor, controlMeshColor);
