@@ -760,8 +760,23 @@
                 var bezierSurfaceMaterial = new THREE.MeshLambertMaterial({color: color, wireframe: controls.asWireframe});
                 var triangularBezierSurface = new THREE.Mesh(triangularBezierSurfaceGeometry, bezierSurfaceMaterial);
                 triangularBezierSurface.material.side = THREE.DoubleSide;
-                // if(controls.drawPlane)
-                // 	scene.add(triangularBezierSurface);
+                if(controls.drawPlane)
+                 	scene.add(triangularBezierSurface);
+
+                 if(controls.drawDebugElements)
+				{
+                	scene.add(createSphere(sourcePoint, 0x00ff00));
+                	scene.add(createSphere(sourceEndPoint, 0x00ff00));
+            	}
+
+                var lightBelow = new THREE.PointLight(0xffffff);
+                lightBelow.position.set(20, -40, 20);
+                scene.add(lightBelow);
+
+                var lightAbove = new THREE.PointLight(0xffffff);
+                lightAbove.position.set(20, 40, 20);
+                lightAbove.target = triangularBezierSurface;
+                scene.add(lightAbove);
     		}
 
             function createSphere(pos, color, name = "", radius = 0.7, )
