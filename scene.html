@@ -249,6 +249,56 @@
 
 				return uvs;
 			}
+
+			class EdgeInfo
+            {
+ 
+                constructor(vBeginIndex = -1, vEndIndex = -1, face1Index = -1, face2Index = -1, isdt = -1)
+                {
+                	this.vBeginIndex = vBeginIndex;
+                	this.vEndIndex = vEndIndex;
+                	this.face1Index = face1Index;
+                	this.face2Index = face2Index;
+                	this.isdt = isdt;
+                }
+               }
+
+            class FaceInfo
+            {
+               	constructor(edgeIndices)
+               	{
+               		this.edgeIndices = edgeIndices;
+               	}
+
+             	getSubsetExcludingIndex(indexToExclude)
+                {
+                	var result = [];
+                	this.edgeIndices.forEach(function (edgeIndex, index, array)
+                	{
+                		if(edgeIndex != indexToExclude)
+                			result.push(edgeIndex);
+                	});
+
+                	return result;
+                }
+               }
+
+            class IntersectionInfo
+            {
+ 
+              	constructor(u, v, edgeIndex, checked = false)
+               	{
+               		this.u = u;
+               		this.v = v;
+               		this.edgeIndex = edgeIndex;
+               		this.checked = checked;
+               	}
+
+               	clone()
+               	{
+               		return new IntersectionInfo(this.u, this.v, this.edgeIndex, this.checked);
+               	}
+            }
                 
             function drawBezierSurface(controlPoints, color)
             {
@@ -288,55 +338,7 @@
                 		uvSurfaceVertices.push(item.clone());
                	 	});
 
-                class EdgeInfo
-                {
- 
-                	constructor(vBeginIndex = -1, vEndIndex = -1, face1Index = -1, face2Index = -1, isdt = -1)
-                	{
-                		this.vBeginIndex = vBeginIndex;
-                		this.vEndIndex = vEndIndex;
-                		this.face1Index = face1Index;
-                		this.face2Index = face2Index;
-                		this.isdt = isdt;
-                	}
-                }
-
-                class FaceInfo
-                {
-                	constructor(edgeIndices)
-                	{
-                		this.edgeIndices = edgeIndices;
-                	}
-
-                	getSubsetExcludingIndex(indexToExclude)
-                	{
-                		var result = [];
-                		this.edgeIndices.forEach(function (edgeIndex, index, array)
-                		{
-                			if(edgeIndex != indexToExclude)
-                				result.push(edgeIndex);
-                		});
-
-                		return result;
-                	}
-                }
-
-                class IntersectionInfo
-                {
- 
-                	constructor(u, v, edgeIndex, checked = false)
-                	{
-                		this.u = u;
-                		this.v = v;
-                		this.edgeIndex = edgeIndex;
-                		this.checked = checked;
-                	}
-
-                	clone()
-                	{
-                		return new IntersectionInfo(this.u, this.v, this.edgeIndex, this.checked);
-                	}
-                }
+                
 
                 var edgesInfo = [];
                 var facesInfo = [];
@@ -679,6 +681,11 @@
     				return rstArr;
   				}
 
+  				var edgesInfo = [];
+                var facesInfo = [];
+
+                var currentFaceIndex = 0;
+
   				function genTrianglesIndexes(n)
   				{
     				let st = 0; 
@@ -690,8 +697,13 @@
       					for(let i = 0; i < m; i++)
       					{    
         					triangles.push(new THREE.Face3(st + i, st + i + 1, st + m + i + 1));
+        					currentFaceIndex++;
+
         					if(i < m - 1)
+        					{
         						triangles.push(new THREE.Face3(st + i + 1, st + m + i + 2, st + m + i + 1));
+        					    currentFaceIndex++;
+							}
       					}
      					m--;
       					st += j + 1;  
@@ -751,6 +763,8 @@
     				geom.vertices = points;
     				geom.faces = trianglesIndexes;
     			}
+
+				
 
     			var triangularBezierSurfaceGeometry = new THREE.Geometry();
     			genTrianglesForCubicBezierTriangle(25, controlPoints, triangularBezierSurfaceGeometry);
