@@ -684,13 +684,15 @@
   				var edgesInfo = [];
                 var facesInfo = [];
 
-                var currentFaceIndex = 0;
 
   				function genTrianglesIndexes(n)
   				{
     				let st = 0; 
     				let m = n;  
     				let triangles = [];
+
+    				var currentFaceIndex = 0;
+
 
     				for(let j = n; j > 0; j--)
     				{    
@@ -699,20 +701,63 @@
       						var v1 = st + i;
       						var v2 = st + i + 1;
       						var v3 = st + m + i + 1;
-      						edgesInfo.push(new EdgeInfo(v1, v2, ));
+
+      						//e1
+      						var f1 = currentFaceIndex - (2 * (m - 1));
+      						if(j == n)
+      							f1 = -1;
+      						var f2 = currentFaceIndex;
+      						edgesInfo.push(new EdgeInfo(v1, v2, f1, f2));
+
+      						//e2
+      						f1 = currentFaceIndex;
+      						f2 = currentFaceIndex + 1;
+      						if(i ==  m - 1)
+      							f2 = -1;
+      						edgesInfo.push(new EdgeInfo(v2, v3, f1, f2));
+
+      						//e3
+      						f1 = currentFaceIndex - 1;
+      						if(i == 0)
+      							f1 = -1;
+      						f2 = currentFaceIndex;
+      						edgesInfo.push(new EdgeInfo(v3, v1, f1, f2));
+
+      						facesInfo.push(new FaceInfo([edgesInfo.length - 3, edgesInfo.length - 2, edgesInfo.length - 1]));
 
         					triangles.push(new THREE.Face3(v1, v2, v3));
+        					
         					currentFaceIndex++;
 
-        					if(i > n / 2)
-        					{
          					if(i < m - 1)
         					{
-         						triangles.push(new THREE.Face3(st + i + 1, st + m + i + 2, st + m + i + 1));
+        						var v4 = st + i + 1;
+      							var v5 = st + m + i + 2;
+      							var v6 = st + m + i + 1;
+      							
+      							//e4
+      							f1 = currentFaceIndex + 1;
+      							f2 = currentFaceIndex;
+      							edgesInfo.push(new EdgeInfo(v4, v5, f1, f2));
+
+      							//e5
+      							f1 = currentFaceIndex;
+      							f2 = currentFaceIndex + 1;
+      							edgesInfo.push(new EdgeInfo(v5, v6, f1, f2));
+
+      							//e6
+      							f1 = currentFaceIndex - 1;
+      							f2 = currentFaceIndex + (2 * (m - 2));
+      							edgesInfo.push(new EdgeInfo(v6, v4, f1, f2));
+
+								facesInfo.push(new FaceInfo([edgesInfo.length - 3, edgesInfo.length - 2, edgesInfo.length - 1]));
+         						
+         						triangles.push(new THREE.Face3(v4, v5, v6));
+         					    
          					    currentFaceIndex++;
 							}
 						}
-      					}
+      					
      					m--;
       					st += j + 1;  
     				}
