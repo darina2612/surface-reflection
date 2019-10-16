@@ -299,201 +299,74 @@
                		return new IntersectionInfo(this.u, this.v, this.edgeIndex, this.checked);
                	}
             }
-                
-            function drawBezierSurface(controlPoints, color)
+
+            class rst
+        	{
+        		constructor(r, s, t)
+        		{
+        			this.r = r;
+        			this.s = s;
+        			this.t = t;
+        		}
+        	}
+
+
+            function drawScene()
             {
-                var basicBezierModel = [];  //n bezier curves calculated from bezier control points
-
-                // calculating basic bezier model (main n bezier curves)
-                for (var i = 0; i < controlPoints.length; i++)
-                {
-                    basicBezierModel.push(bezierCurvePoints(controlPoints[i]));
-                    bezierCurveDivisions = basicBezierModel[0].length - 1;
-                }
-
-                var bezierCurvesVertices = [];
-
-				for (var i = 0; i < bezierCurveDivisions + 1; i++)
-				{
-					var points = [];
-                	basicBezierModel.forEach(function(pointArr, index, array)
-                	{
-                		points.push(pointArr[i]);
-                	});
-
-
-                 	bezierCurvesVertices = bezierCurvesVertices.concat(bezierCurvePoints(points));
-                }
-
-                var uvs = getUv(bezierCurveDivisions);
-
-                // now we've got full bezier model, it's time to create bezier surface and add it to the scene
-                var bezierSurfaceVertices = bezierCurvesVertices;
-                var bezierSurfaceFaces = [];
-
-                var initUvSurfaceVertices = (uvSurfaceVertices.length == 0);
-                if(initUvSurfaceVertices)
-                	bezierSurfaceVertices.forEach(function(item, index, array)
-                	{
-                		uvSurfaceVertices.push(item.clone());
-               	 	});
-
-                
-
-                var edgesInfo = [];
-                var facesInfo = [];
-
-                // creating faces from vertices
-                var currentFaceIndex = 0;
-                var v1, v2, v2;  // vertex indices in bezierSurfaceVertices array
-                for (var i = 0; i < bezierCurveDivisions; i++)
-                {
-                    for (var j = 0; j < bezierCurveDivisions; j++)
-                    {
-                    	function checkIndex(v)
-                    	{
-                    		if(v > bezierSurfaceVertices.length - 1)
-                    		{
-                    			console.log("Out of range : " + v);
-                    			return false;
-                    		}
-
-                    		return true;
-                    	}
-                    	function check(v1, v2, v3)
-                    	{
-                    		return (checkIndex(v1) &&
-                    				checkIndex(v2) &&
-                    				checkIndex(v3));
-                    	}
-
-                        v1 = i * (bezierCurveDivisions + 1) + j;
-                        v2 = (i + 1) * (bezierCurveDivisions + 1) + j; 
-                        v3 = i * (bezierCurveDivisions + 1) + (j + 1); 
-                        bezierSurfaceFaces.push(new THREE.Face3(v1, v2, v3));
-
-                        //e1
-                        var f1 = currentFaceIndex - 1;
-                        var f2 = currentFaceIndex;
-                        if(j == 0)
-                        	f1 = -1;
-                        edgesInfo.push(new EdgeInfo(v1, v2, f1, f2));
-
-                        //e2
-                        f1 = currentFaceIndex;
-                        f2 = currentFaceIndex + 1;
-                        edgesInfo.push(new EdgeInfo(v2, v3, f1, f2));
-
-                        //e3
-                        f1 = ((i - 1) * (bezierCurveDivisions + 1) + (j * 2));
-                        f2 = currentFaceIndex;
-                        if(i == 0)
-                        	f1 = -1;
-                        edgesInfo.push(new EdgeInfo(v3, v1, f1, f2));
-
-                        facesInfo.push(new FaceInfo([edgesInfo.length - 3, edgesInfo.length - 2, edgesInfo.length - 1]));
-
-                        v1 = (i + 1) * (bezierCurveDivisions + 1) + j; 
-                        v2 = (i + 1) * (bezierCurveDivisions + 1) + (j + 1);
-                        v3 = i * (bezierCurveDivisions + 1) + (j + 1);
-                        bezierSurfaceFaces.push(new THREE.Face3(v1, v2, v3));
-
-                        currentFaceIndex++;
-
-                        //e4
-                        f1 = currentFaceIndex;
-                        f2 = (i + 1) * (bezierCurveDivisions + 1) + (j * 2);
-                        if(i > bezierCurveDivisions - 1)
-                        	f2 = -1;
-                        edgesInfo.push(new EdgeInfo(v1, v2, f1, f2));
-
-                        //e5
-                        f1 = currentFaceIndex;
-                        f2 = currentFaceIndex + 1;
-                        if(j > bezierCurveDivisions - 1)
-                        	f2 = -1;
-                        edgesInfo.push(new EdgeInfo(v2, v3, f1, f2));
-
-                        //e6
-                        f1 = currentFaceIndex;
-                        f2 = currentFaceIndex + 1;
-                        edgesInfo.push(new EdgeInfo(v3, v1, f1, f2));
-
-                        facesInfo.push(new FaceInfo([edgesInfo.length - 3, edgesInfo.length - 2, edgesInfo.length - 1]));
-
-                        currentFaceIndex++;
-                    }
-                }
-
-                var bezierSurfaceGeometry = new THREE.Geometry();
-                bezierSurfaceGeometry.vertices = bezierSurfaceVertices;
-                bezierSurfaceGeometry.faces = bezierSurfaceFaces;
-                bezierSurfaceGeometry.computeFaceNormals();
-                bezierSurfaceGeometry.computeVertexNormals();
-                var bezierSurfaceMaterial = new THREE.MeshLambertMaterial({color: color, wireframe: controls.asWireframe});
-                var bezierSurface = new THREE.Mesh(bezierSurfaceGeometry, bezierSurfaceMaterial);
-                bezierSurface.material.side = THREE.DoubleSide;
-                if(controls.drawPlane)
-                	scene.add(bezierSurface);
-
-                //distance surface
-                var sourcePoint = sourceCylinderPos.clone();
-                sourcePoint.z -= sourceCylinder.geometry.parameters.height;
-                var sourceEndPoint = sourceCylinderPos.clone();
-                sourceEndPoint.z += sourceCylinder.geometry.parameters.height;
-                var sourceDir = new THREE.Vector3();
-                sourceDir.subVectors(sourceEndPoint, sourcePoint);
+	            var sourcePoint = sourceCylinderPos.clone();
+	            sourcePoint.z -= sourceCylinder.geometry.parameters.height;
+	            var sourceEndPoint = sourceCylinderPos.clone();
+	            sourceEndPoint.z += sourceCylinder.geometry.parameters.height;
+	            var sourceDir = new THREE.Vector3();
+	            sourceDir.subVectors(sourceEndPoint, sourcePoint);
 
 				if(controls.drawDebugElements)
 				{
-    	            var arrowHelper = new THREE.ArrowHelper(sourceDir, sourcePoint, sourceDir.length(), 0xff0000);
+	    	        var arrowHelper = new THREE.ArrowHelper(sourceDir, sourcePoint, sourceDir.length(), 0xff0000);
 					scene.add(arrowHelper);
 				}
 
-                var distanceSurfaceVertices = new Array(bezierSurfaceVertices.length);
+				function calculateDistanceSurfaceGeometry(distanceSurfaceGeometry, mainSurfaceVertices, mainSurfaceFaces, uvs)
+				{
+					var distanceSurfaceVertices = new Array(mainSurfaceVertices.length);
 
-                var distaceSurfaceGeometry = new THREE.Geometry();
+	                mainSurfaceFaces.forEach(function(face, index, array)
+	                {
+	                	function f(vertexIndex, faceVertexIndex)
+	                	{
+							if(typeof distanceSurfaceVertices[vertexIndex] === "undefined")
+							{
+								var bxn = new THREE.Vector3();
+								bxn.crossVectors(sourceDir, face.vertexNormals[faceVertexIndex]);
 
-                bezierSurfaceFaces.forEach(function(face, index, array)
-                {
-                	function f(vertexIndex, faceVertexIndex)
-                	{
-						if(typeof distanceSurfaceVertices[vertexIndex] === "undefined")
-						{
-							var bxn = new THREE.Vector3();
-							bxn.crossVectors(sourceDir, face.vertexNormals[faceVertexIndex]);
+								var qa = new THREE.Vector3();
+								qa.subVectors(sourcePoint, mainSurfaceVertices[vertexIndex]);
 
-							var qa = new THREE.Vector3();
-							qa.subVectors(sourcePoint, bezierSurfaceVertices[vertexIndex]);
+								var d = bxn.dot(qa) / bxn.length();
 
-							var d = bxn.dot(qa) / bxn.length();
-
-							distanceSurfaceVertices[vertexIndex] = new THREE.Vector3(uvs[vertexIndex].u,
-																			   		 uvs[vertexIndex].v,
-																			   		 d);
+								distanceSurfaceVertices[vertexIndex] = new THREE.Vector3(uvs[vertexIndex].u,
+																				   		 uvs[vertexIndex].v,
+																				   		 d);
+							}
 						}
-					}
 
-					var faceCopy = face.clone();
-					f(faceCopy.a, 0);
-					f(faceCopy.b, 1);
-					f(faceCopy.c, 2);
+						var faceCopy = face.clone();
+						f(faceCopy.a, 0);
+						f(faceCopy.b, 1);
+						f(faceCopy.c, 2);
 
-					distaceSurfaceGeometry.faces.push(faceCopy);
-                });
+						distanceSurfaceGeometry.faces.push(faceCopy);
+	                });
 
-                distaceSurfaceGeometry.vertices = distanceSurfaceVertices;
-                distaceSurfaceGeometry.computeFaceNormals();
-                distaceSurfaceGeometry.computeVertexNormals();
-                var distaceSurfaceMaterial = new THREE.MeshLambertMaterial({color: 0x0000ff, wireframe: controls.asWireframe});
-                var distaceSurface = new THREE.Mesh(distaceSurfaceGeometry, distaceSurfaceMaterial);
-                distaceSurface.material.side = THREE.DoubleSide;
-                if(controls.drawAuxSurface)
-                {
-                	scene.add(distaceSurface);
-            	}
+	                distanceSurfaceGeometry.vertices = distanceSurfaceVertices;
+	                distanceSurfaceGeometry.computeFaceNormals();
+	                distanceSurfaceGeometry.computeVertexNormals();
+	                var distanceSurfaceMaterial = new THREE.MeshLambertMaterial({color: 0x0000ff, wireframe: controls.asWireframe});
+	                var distanceSurface = new THREE.Mesh(distanceSurfaceGeometry, distanceSurfaceMaterial);
+	                distanceSurface.material.side = THREE.DoubleSide;
+				}
 
-            	function calculateReflectionsForRarius(c)
+				function calculateReflectionsForRarius(c, edgesInfo, facesInfo, distanceSurfaceGeometry, controlPoints, isTriangle = false)
             	{
 	                var planeNormal = new THREE.Vector3(0, 0, 1);
 
@@ -501,8 +374,8 @@
 
 	                edgesInfo.forEach(function(edge, index, array)
 	                {
-	                	var edgeStart = distaceSurfaceGeometry.vertices[edge.vBeginIndex].clone();
-	                	var edgeEnd = distaceSurfaceGeometry.vertices[edge.vEndIndex].clone();
+	                	var edgeStart = distanceSurfaceGeometry.vertices[edge.vBeginIndex].clone();
+	                	var edgeEnd = distanceSurfaceGeometry.vertices[edge.vEndIndex].clone();
 
 	                	if(checkLinePlaneIntersection(planeNormal, edgeStart, edgeEnd))
 	                	{
@@ -605,14 +478,24 @@
 						
 						contour.forEach(function(point, index, array)
 						{
-							contour3dPoints.push(getSurfacePointAt(point.u, point.v, controlPoints));
+							var point3d =  null;
+							if(isTriangle)
+							{
+								point3d = calcCubicBezierTriangleValue(controlPoints, new rst(1 - point.u - point.v, point.v, point.u));
+							}
+							else
+							{
+								point3d = getSurfacePointAt(point.u, point.v, controlPoints);
+							}
+
+							contour3dPoints.push(point3d);
 						});
 
 						if(contour3dPoints.length <= 1)
 						{
 							if(contour3dPoints.length == 1)
 							{
-								scene.add(createSphere(contour3dPoints[0], color, "", 0.2));
+								scene.add(createSphere(contour3dPoints[0], 0x000000, "", 0.2));
 							}
 						}
 						else
@@ -631,152 +514,186 @@
 						}
 					}); 
 				}
+	                
+	            function drawBezierSurface(controlPoints, color)
+	            {
+	                var basicBezierModel = [];  //n bezier curves calculated from bezier control points
 
-				calculateReflectionsForRarius(0);
-				calculateReflectionsForRarius(controls.radius);
-				calculateReflectionsForRarius(-controls.radius);
+	                // calculating basic bezier model (main n bezier curves)
+	                for (var i = 0; i < controlPoints.length; i++)
+	                {
+	                    basicBezierModel.push(bezierCurvePoints(controlPoints[i]));
+	                    bezierCurveDivisions = basicBezierModel[0].length - 1;
+	                }
 
-				if(controls.drawDebugElements)
-				{
-                	scene.add(createSphere(sourcePoint, 0x00ff00));
-                	scene.add(createSphere(sourceEndPoint, 0x00ff00));
-            	}
+	                var bezierCurvesVertices = [];
 
-                var lightBelow = new THREE.PointLight(0xffffff);
-                lightBelow.position.set(20, -40, 20);
-                scene.add(lightBelow);
-
-                var lightAbove = new THREE.PointLight(0xffffff);
-                lightAbove.position.set(20, 40, 20);
-                lightAbove.target = bezierSurface;
-                scene.add(lightAbove);
-            }
-
-            function drawBezierTriangularSurface(controlPoints, color)
-            {
-            	class rst
-            	{
-            		constructor(r, s, t)
-            		{
-            			this.r = r;
-            			this.s = s;
-            			this.t = t;
-            		}
-            	}
-
-            	function getBarycentricCoords(n)
-            	{
-    				var rstArr = [];
-    				for(let i = 0; i <= n; i++)
-    				{
-    					for(let j= 0; j <= n - i; j++)
-    					{
-     						let s = (j / n);
-      						let t = (i / n);    
-      						let r = 1 - s - t;
-      						rstArr.push(new rst(r, s, t));    
-    					}
-    				}
-
-    				return rstArr;
-  				}
-
-  				var edgesInfo = [];
-                var facesInfo = [];
+					for (var i = 0; i < bezierCurveDivisions + 1; i++)
+					{
+						var points = [];
+	                	basicBezierModel.forEach(function(pointArr, index, array)
+	                	{
+	                		points.push(pointArr[i]);
+	                	});
 
 
-  				function genTrianglesIndexes(n)
-  				{
-    				let st = 0; 
-    				let m = n;  
-    				let triangles = [];
+	                 	bezierCurvesVertices = bezierCurvesVertices.concat(bezierCurvePoints(points));
+	                }
 
-    				var currentFaceIndex = 0;
+	                var uvs = getUv(bezierCurveDivisions);
+
+	                // now we've got full bezier model, it's time to create bezier surface and add it to the scene
+	                var bezierSurfaceVertices = bezierCurvesVertices;
+	                var bezierSurfaceFaces = [];
+
+	                var initUvSurfaceVertices = (uvSurfaceVertices.length == 0);
+	                if(initUvSurfaceVertices)
+	                	bezierSurfaceVertices.forEach(function(item, index, array)
+	                	{
+	                		uvSurfaceVertices.push(item.clone());
+	               	 	});
+
+	                var edgesInfo = [];
+	                var facesInfo = [];
+
+	                // creating faces from vertices
+	                var currentFaceIndex = 0;
+	                var v1, v2, v2;  // vertex indices in bezierSurfaceVertices array
+	                for (var i = 0; i < bezierCurveDivisions; i++)
+	                {
+	                    for (var j = 0; j < bezierCurveDivisions; j++)
+	                    {
+	                    	function checkIndex(v)
+	                    	{
+	                    		if(v > bezierSurfaceVertices.length - 1)
+	                    		{
+	                    			console.log("Out of range : " + v);
+	                    			return false;
+	                    		}
+
+	                    		return true;
+	                    	}
+	                    	function check(v1, v2, v3)
+	                    	{
+	                    		return (checkIndex(v1) &&
+	                    				checkIndex(v2) &&
+	                    				checkIndex(v3));
+	                    	}
+
+	                        v1 = i * (bezierCurveDivisions + 1) + j;
+	                        v2 = (i + 1) * (bezierCurveDivisions + 1) + j; 
+	                        v3 = i * (bezierCurveDivisions + 1) + (j + 1); 
+	                        bezierSurfaceFaces.push(new THREE.Face3(v1, v2, v3));
+
+	                        //e1
+	                        var f1 = currentFaceIndex - 1;
+	                        var f2 = currentFaceIndex;
+	                        if(j == 0)
+	                        	f1 = -1;
+	                        edgesInfo.push(new EdgeInfo(v1, v2, f1, f2));
+
+	                        //e2
+	                        f1 = currentFaceIndex;
+	                        f2 = currentFaceIndex + 1;
+	                        edgesInfo.push(new EdgeInfo(v2, v3, f1, f2));
+
+	                        //e3
+	                        f1 = ((i - 1) * (bezierCurveDivisions + 1) + (j * 2));
+	                        f2 = currentFaceIndex;
+	                        if(i == 0)
+	                        	f1 = -1;
+	                        edgesInfo.push(new EdgeInfo(v3, v1, f1, f2));
+
+	                        facesInfo.push(new FaceInfo([edgesInfo.length - 3, edgesInfo.length - 2, edgesInfo.length - 1]));
+
+	                        v1 = (i + 1) * (bezierCurveDivisions + 1) + j; 
+	                        v2 = (i + 1) * (bezierCurveDivisions + 1) + (j + 1);
+	                        v3 = i * (bezierCurveDivisions + 1) + (j + 1);
+	                        bezierSurfaceFaces.push(new THREE.Face3(v1, v2, v3));
+
+	                        currentFaceIndex++;
+
+	                        //e4
+	                        f1 = currentFaceIndex;
+	                        f2 = (i + 1) * (bezierCurveDivisions + 1) + (j * 2);
+	                        if(i > bezierCurveDivisions - 1)
+	                        	f2 = -1;
+	                        edgesInfo.push(new EdgeInfo(v1, v2, f1, f2));
+
+	                        //e5
+	                        f1 = currentFaceIndex;
+	                        f2 = currentFaceIndex + 1;
+	                        if(j > bezierCurveDivisions - 1)
+	                        	f2 = -1;
+	                        edgesInfo.push(new EdgeInfo(v2, v3, f1, f2));
+
+	                        //e6
+	                        f1 = currentFaceIndex;
+	                        f2 = currentFaceIndex + 1;
+	                        edgesInfo.push(new EdgeInfo(v3, v1, f1, f2));
+
+	                        facesInfo.push(new FaceInfo([edgesInfo.length - 3, edgesInfo.length - 2, edgesInfo.length - 1]));
+
+	                        currentFaceIndex++;
+	                    }
+	                }
+
+	                var bezierSurfaceGeometry = new THREE.Geometry();
+	                bezierSurfaceGeometry.vertices = bezierSurfaceVertices;
+	                bezierSurfaceGeometry.faces = bezierSurfaceFaces;
+	                bezierSurfaceGeometry.computeFaceNormals();
+	                bezierSurfaceGeometry.computeVertexNormals();
+	                var bezierSurfaceMaterial = new THREE.MeshLambertMaterial({color: color, wireframe: controls.asWireframe});
+	                var bezierSurface = new THREE.Mesh(bezierSurfaceGeometry, bezierSurfaceMaterial);
+	                bezierSurface.material.side = THREE.DoubleSide;
+	                if(controls.drawPlane)
+	                	scene.add(bezierSurface);
+
+	                //distance surface
+
+	                var distanceSurfaceGeometry = new THREE.Geometry();
+
+	                calculateDistanceSurfaceGeometry(distanceSurfaceGeometry, bezierSurfaceVertices, bezierSurfaceFaces, uvs)
+
+	             //    if(controls.drawAuxSurface)
+	             //    {
+	             //    	scene.add(distanceSurface);
+	            	// }
+
+					calculateReflectionsForRarius(0, edgesInfo, facesInfo, distanceSurfaceGeometry, controlPoints);
+					calculateReflectionsForRarius(controls.radius, edgesInfo, facesInfo, distanceSurfaceGeometry, controlPoints);
+					calculateReflectionsForRarius(-controls.radius, edgesInfo, facesInfo, distanceSurfaceGeometry, controlPoints);
+
+					if(controls.drawDebugElements)
+					{
+	                	scene.add(createSphere(sourcePoint, 0x00ff00));
+	                	scene.add(createSphere(sourceEndPoint, 0x00ff00));
+	            	}
+
+	                var lightBelow = new THREE.PointLight(0xffffff);
+	                lightBelow.position.set(20, -40, 20);
+	                scene.add(lightBelow);
+
+	                var lightAbove = new THREE.PointLight(0xffffff);
+	                lightAbove.position.set(20, 40, 20);
+	                lightAbove.target = bezierSurface;
+	                scene.add(lightAbove);
+	            }
 
 
-    				for(let j = n; j > 0; j--)
-    				{    
-      					for(let i = 0; i < m; i++)
-      					{    
-      						var v1 = st + i;
-      						var v2 = st + i + 1;
-      						var v3 = st + m + i + 1;
+				function bernstein(i, j, k, rst, n = 3)
+	  			{
+	  				function fact(n)
+	  				{
+	  					if(n <= 1)
+	  						return 1;
+	  					return n * fact(n - 1);
+	  				}
 
-      						//e1
-      						var f1 = currentFaceIndex - (2 * (m - 1));
-      						if(j == n)
-      							f1 = -1;
-      						var f2 = currentFaceIndex;
-      						edgesInfo.push(new EdgeInfo(v1, v2, f1, f2));
+	    			return rst.r**i * rst.s**j * rst.t**k * fact(n) / (fact(i) * fact(j) * fact(k));  
+	  			}
 
-      						//e2
-      						f1 = currentFaceIndex;
-      						f2 = currentFaceIndex + 1;
-      						if(i ==  m - 1)
-      							f2 = -1;
-      						edgesInfo.push(new EdgeInfo(v2, v3, f1, f2));
-
-      						//e3
-      						f1 = currentFaceIndex - 1;
-      						if(i == 0)
-      							f1 = -1;
-      						f2 = currentFaceIndex;
-      						edgesInfo.push(new EdgeInfo(v3, v1, f1, f2));
-
-      						facesInfo.push(new FaceInfo([edgesInfo.length - 3, edgesInfo.length - 2, edgesInfo.length - 1]));
-
-        					triangles.push(new THREE.Face3(v1, v2, v3));
-        					
-        					currentFaceIndex++;
-
-         					if(i < m - 1)
-        					{
-        						var v4 = st + i + 1;
-      							var v5 = st + m + i + 2;
-      							var v6 = st + m + i + 1;
-      							
-      							//e4
-      							f1 = currentFaceIndex + 1;
-      							f2 = currentFaceIndex;
-      							edgesInfo.push(new EdgeInfo(v4, v5, f1, f2));
-
-      							//e5
-      							f1 = currentFaceIndex;
-      							f2 = currentFaceIndex + 1;
-      							edgesInfo.push(new EdgeInfo(v5, v6, f1, f2));
-
-      							//e6
-      							f1 = currentFaceIndex - 1;
-      							f2 = currentFaceIndex + (2 * (m - 2));
-      							edgesInfo.push(new EdgeInfo(v6, v4, f1, f2));
-
-								facesInfo.push(new FaceInfo([edgesInfo.length - 3, edgesInfo.length - 2, edgesInfo.length - 1]));
-         						
-         						triangles.push(new THREE.Face3(v4, v5, v6));
-         					    
-         					    currentFaceIndex++;
-							}
-						}
-      					
-     					m--;
-      					st += j + 1;  
-    				}
-
-    				return triangles;
-  				}
-
-  				function bernstein(i, j, k, rst, n = 3)
-  				{
-  					function fact(n)
-  					{
-  						if(n <= 1)
-  							return 1;
-  						return n * fact(n - 1);
-  					}
-    				return rst.r**i * rst.s**j * rst.t**k * fact(n) / (fact(i) * fact(j) * fact(k));  
-  				}
-
-  				function calcCubicBezierTriangleValue(controlPoints, rst)
+				function calcCubicBezierTriangleValue(controlPoints, rst)
   				{
     				let p = controlPoints, b = [];
 
@@ -802,50 +719,167 @@
     				return new THREE.Vector3(x, y, z);
   				}
 
-            	function genTrianglesForCubicBezierTriangle(n, controlPoints, geom)
-            	{
-    				var barycentricCoords = getBarycentricCoords(n); // domain in barycentric coordinates   
-    				var trianglesIndexes = genTrianglesIndexes(n); // indexes of triangles (in bar array)
-        
-    				var points = [];
-    				barycentricCoords.forEach(function (rst, index, array)
-    				{
-    					points.push(calcCubicBezierTriangleValue(controlPoints, rst));
-    				}); // bar.map(x => this.calcCubicBezierTriangleValue(controlPoints,...x));  // Calc 
+	            function drawBezierTriangularSurface(controlPoints, color)
+	            {
+	            	function getBarycentricCoords(n)
+	            	{
+	    				var rstArr = [];
+	    				for(let i = 0; i <= n; i++)
+	    				{
+	    					for(let j= 0; j <= n - i; j++)
+	    					{
+	     						let s = (j / n);
+	      						let t = (i / n);    
+	      						let r = 1 - s - t;
+	      						rstArr.push(new rst(r, s, t));    
+	    					}
+	    				}
 
-    				geom.vertices = points;
-    				geom.faces = trianglesIndexes;
-    			}
+	    				return rstArr;
+	  				}
 
-				
+	  				var edgesInfo = [];
+	                var facesInfo = [];
+	                var uvs = [];
 
-    			var triangularBezierSurfaceGeometry = new THREE.Geometry();
-    			genTrianglesForCubicBezierTriangle(25, controlPoints, triangularBezierSurfaceGeometry);
-                
-                triangularBezierSurfaceGeometry.computeFaceNormals();
-                triangularBezierSurfaceGeometry.computeVertexNormals();
-                var bezierSurfaceMaterial = new THREE.MeshLambertMaterial({color: color, wireframe: controls.asWireframe});
-                var triangularBezierSurface = new THREE.Mesh(triangularBezierSurfaceGeometry, bezierSurfaceMaterial);
-                triangularBezierSurface.material.side = THREE.DoubleSide;
-                if(controls.drawPlane)
-                 	scene.add(triangularBezierSurface);
+	  				function genTrianglesIndexes(n)
+	  				{
+	    				let st = 0; 
+	    				let m = n;  
+	    				let triangles = [];
 
-                 if(controls.drawDebugElements)
+	    				var currentFaceIndex = 0;
+
+
+	    				for(let j = n; j > 0; j--)
+	    				{    
+	      					for(let i = 0; i < m; i++)
+	      					{    
+	      						var v1 = st + i;
+	      						var v2 = st + i + 1;
+	      						var v3 = st + m + i + 1;
+
+	      						//e1
+	      						var f1 = currentFaceIndex - (2 * (m - 1));
+	      						if(j == n)
+	      							f1 = -1;
+	      						var f2 = currentFaceIndex;
+	      						edgesInfo.push(new EdgeInfo(v1, v2, f1, f2));
+
+	      						//e2
+	      						f1 = currentFaceIndex;
+	      						f2 = currentFaceIndex + 1;
+	      						if(i ==  m - 1)
+	      							f2 = -1;
+	      						edgesInfo.push(new EdgeInfo(v2, v3, f1, f2));
+
+	      						//e3
+	      						f1 = currentFaceIndex - 1;
+	      						if(i == 0)
+	      							f1 = -1;
+	      						f2 = currentFaceIndex;
+	      						edgesInfo.push(new EdgeInfo(v3, v1, f1, f2));
+
+	      						facesInfo.push(new FaceInfo([edgesInfo.length - 3, edgesInfo.length - 2, edgesInfo.length - 1]));
+
+	        					triangles.push(new THREE.Face3(v1, v2, v3));
+	        					
+	        					currentFaceIndex++;
+
+	         					if(i < m - 1)
+	        					{
+	        						var v4 = st + i + 1;
+	      							var v5 = st + m + i + 2;
+	      							var v6 = st + m + i + 1;
+	      							
+	      							//e4
+	      							f1 = currentFaceIndex + 1;
+	      							f2 = currentFaceIndex;
+	      							edgesInfo.push(new EdgeInfo(v4, v5, f1, f2));
+
+	      							//e5
+	      							f1 = currentFaceIndex;
+	      							f2 = currentFaceIndex + 1;
+	      							edgesInfo.push(new EdgeInfo(v5, v6, f1, f2));
+
+	      							//e6
+	      							f1 = currentFaceIndex - 1;
+	      							f2 = currentFaceIndex + (2 * (m - 2));
+	      							edgesInfo.push(new EdgeInfo(v6, v4, f1, f2));
+
+									facesInfo.push(new FaceInfo([edgesInfo.length - 3, edgesInfo.length - 2, edgesInfo.length - 1]));
+	         						
+	         						triangles.push(new THREE.Face3(v4, v5, v6));
+	         					    
+	         					    currentFaceIndex++;
+								}
+							}
+	      					
+	     					m--;
+	      					st += j + 1;  
+	    				}
+
+	    				return triangles;
+	  				}
+
+	            	function genTrianglesForCubicBezierTriangle(n, controlPoints, geom)
+	            	{
+	    				var barycentricCoords = getBarycentricCoords(n); // domain in barycentric coordinates   
+	    				var trianglesIndexes = genTrianglesIndexes(n); // indexes of triangles (in bar array)
+	        
+	    				var points = [];
+	    				barycentricCoords.forEach(function (rst, index, array)
+	    				{
+	    					points.push(calcCubicBezierTriangleValue(controlPoints, rst));
+	    					uvs.push(new uv(rst.t, rst.s));
+	    				});
+
+	    				geom.vertices = points;
+	    				geom.faces = trianglesIndexes;
+	    			}
+
+					
+	    			var triangularBezierSurfaceGeometry = new THREE.Geometry();
+	    			genTrianglesForCubicBezierTriangle(25, controlPoints, triangularBezierSurfaceGeometry);
+	                
+	                triangularBezierSurfaceGeometry.computeFaceNormals();
+	                triangularBezierSurfaceGeometry.computeVertexNormals();
+	                var bezierSurfaceMaterial = new THREE.MeshLambertMaterial({color: color, wireframe: controls.asWireframe});
+	                var triangularBezierSurface = new THREE.Mesh(triangularBezierSurfaceGeometry, bezierSurfaceMaterial);
+	                triangularBezierSurface.material.side = THREE.DoubleSide;
+	                if(controls.drawPlane)
+	                 	scene.add(triangularBezierSurface);
+
+	                var distanceSurfaceGeometry = new THREE.Geometry();
+
+	                calculateDistanceSurfaceGeometry(distanceSurfaceGeometry, triangularBezierSurfaceGeometry.vertices,
+	                								 triangularBezierSurfaceGeometry.faces, uvs);
+
+	                calculateReflectionsForRarius(0, edgesInfo, facesInfo, distanceSurfaceGeometry, controlPoints, true);
+					calculateReflectionsForRarius(controls.radius, edgesInfo, facesInfo, distanceSurfaceGeometry, controlPoints, true);
+					calculateReflectionsForRarius(-controls.radius, edgesInfo, facesInfo, distanceSurfaceGeometry, controlPoints, true);
+  
+
+	                var lightBelow = new THREE.PointLight(0xffffff);
+                	lightBelow.position.set(20, -40, 20);
+                	scene.add(lightBelow);
+
+                	var lightAbove = new THREE.PointLight(0xffffff);
+                	lightAbove.position.set(20, 40, 20);
+                	lightAbove.target = triangularBezierSurface;
+                	scene.add(lightAbove);
+	    		}
+
+	    		drawBezierTriangularSurface(triangleControlPoints, controls.color);
+				drawBezierSurface(controlPoints, controls.color);
+
+	    		if(controls.drawDebugElements)
 				{
                 	scene.add(createSphere(sourcePoint, 0x00ff00));
                 	scene.add(createSphere(sourceEndPoint, 0x00ff00));
             	}
-
-                var lightBelow = new THREE.PointLight(0xffffff);
-                lightBelow.position.set(20, -40, 20);
-                scene.add(lightBelow);
-
-                var lightAbove = new THREE.PointLight(0xffffff);
-                lightAbove.position.set(20, 40, 20);
-                lightAbove.target = triangularBezierSurface;
-                scene.add(lightAbove);
-    		}
-
+	    	}
+	    		
             function createSphere(pos, color, name = "", radius = 0.7, )
             {
             	var sphereGeometry = new THREE.SphereGeometry(radius, 10, 10);
@@ -856,7 +890,7 @@
 	            sphere.position.x = pos.x;
 	            sphere.position.y = pos.y;
 	            sphere.position.z = pos.z;
-// 
+ 
 	            return sphere;
 	        }
             
@@ -1073,8 +1107,7 @@
 
 				drawSourceCylinder();
 
-				drawBezierTriangularSurface(triangleControlPoints, controls.color);
-				drawBezierSurface(controlPoints, controls.color);
+				drawScene();
             	var controlMeshColor = 0x000000;
             	if(controls.showControlPoints)
             		drawControlMesh(controlPoints, controlPointsSpheres, controlMeshColor, controlMeshColor);
