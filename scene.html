@@ -374,6 +374,9 @@
 
 	                edgesInfo.forEach(function(edge, index, array)
 	                {
+	                	//reset the value to recalculate it correctly later
+	                	edge.isdt = -1;
+
 	                	var edgeStart = distanceSurfaceGeometry.vertices[edge.vBeginIndex].clone();
 	                	var edgeEnd = distanceSurfaceGeometry.vertices[edge.vEndIndex].clone();
 
@@ -495,7 +498,7 @@
 						{
 							if(contour3dPoints.length == 1)
 							{
-								scene.add(createSphere(contour3dPoints[0], 0x000000, "", 0.2));
+								//scene.add(createSphere(contour3dPoints[0], 0x000000, "", 0.2));
 							}
 						}
 						else
@@ -512,7 +515,7 @@
 							
 							scene.add(curveObject);
 						}
-					}); 
+					});
 				}
 	                
 	            function drawBezierSurface(controlPoints, color)
