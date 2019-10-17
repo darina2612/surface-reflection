@@ -364,6 +364,11 @@
 	                var distanceSurfaceMaterial = new THREE.MeshLambertMaterial({color: 0x0000ff, wireframe: controls.asWireframe});
 	                var distanceSurface = new THREE.Mesh(distanceSurfaceGeometry, distanceSurfaceMaterial);
 	                distanceSurface.material.side = THREE.DoubleSide;
+
+	                if(controls.drawAuxSurface)
+	             	{
+	             		scene.add(distanceSurface);
+	            	}
 				}
 
 				function calculateReflectionsForRarius(c, edgesInfo, facesInfo, distanceSurfaceGeometry, controlPoints, isTriangle = false)
@@ -777,10 +782,10 @@
 	      						edgesInfo.push(new EdgeInfo(v2, v3, f1, f2));
 
 	      						//e3
-	      						f1 = currentFaceIndex - 1;
+	      						f1 = currentFaceIndex;
+	      						f2 = currentFaceIndex - 1;
 	      						if(i == 0)
-	      							f1 = -1;
-	      						f2 = currentFaceIndex;
+	      							f2 = -1;
 	      						edgesInfo.push(new EdgeInfo(v3, v1, f1, f2));
 
 	      						facesInfo.push(new FaceInfo([edgesInfo.length - 3, edgesInfo.length - 2, edgesInfo.length - 1]));
@@ -802,12 +807,12 @@
 
 	      							//e5
 	      							f1 = currentFaceIndex;
-	      							f2 = currentFaceIndex + 1;
+	      							f2 = currentFaceIndex + (2 * (m - 2));
 	      							edgesInfo.push(new EdgeInfo(v5, v6, f1, f2));
 
 	      							//e6
-	      							f1 = currentFaceIndex - 1;
-	      							f2 = currentFaceIndex + (2 * (m - 2));
+	      							f1 = currentFaceIndex;
+	      							f2 = currentFaceIndex - 1;
 	      							edgesInfo.push(new EdgeInfo(v6, v4, f1, f2));
 
 									facesInfo.push(new FaceInfo([edgesInfo.length - 3, edgesInfo.length - 2, edgesInfo.length - 1]));
