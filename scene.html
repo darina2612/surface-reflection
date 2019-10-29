@@ -11,8 +11,98 @@
 		</style>
 	</head>
 	<body>
+<!-- 		<button onclick="document.getElementById('file-input').click();">Open</button>
+ -->		<input id="fileInput" type="file" name="name" style="display: none;"/>
 	<div id="WebGL-output"></div>
 	<script type="text/javascript">
+
+		var isTriangleSurface = false;
+
+		var trianglesControlPoints = [];
+		var controlPointsArr = [];
+
+		window.onload = function()
+		{
+			var fileInput = document.getElementById('fileInput');
+
+			fileInput.addEventListener('change', function(e)
+			{
+				var file = fileInput.files[0];
+				var textType = /text.*/;
+
+				if (file.type.match(textType))
+				{
+					var reader = new FileReader();
+
+					reader.onload = function(e)
+					{
+						if(reader.result[0] == 't')
+							parseTriangularSurfaces(reader.result.substring(2));
+						else if(reader.result[0] == 'r')
+							parseRectangularSurfaces(reader.result.substring(2));
+					}
+
+					reader.readAsText(file);	
+				}
+				else
+				{
+					fileDisplayArea.innerText = "File not supported!"
+				}
+			});
+		}
+
+		function parseRectangularSurfaces(str)
+		{
+			//r
+			//4
+			//(x, y, z), (x, y, z), ...
+			//....
+			var firstNewLineIndex = str.indexOf("\n");
+			var meshSize = parseInt(str.substring(0, firstNewLineIndex));
+
+			var prevNewLineIndex;
+			var surfacesCount = 0;
+			controlPointsArr.push([]);
+			for(var i = 0; i < meshSize; ++ i)
+			{
+				controlPointsArr.push([]);
+
+				prevNewLineIndex = firstNewLineIndex;
+				firstNewLineIndex = str.indexOf("\n") + 1;
+
+				var line = str.substring(prevNewLineIndex + 1, firstNewLineIndex);
+
+				for(var j = 0; j < meshSize; ++j)
+				{
+					var firstOpeningBracketIndex = line.indexOf("("); 
+					line = line.substring(firstOpeningBracketIndex);
+					var firstClosingBracketIndex = line.indexOf(")");
+					var pointStr = line.substring(firstOpeningBracketIndex + 1, firstClosingBracketIndex - 1);
+
+					var values = pointStr.split(",");
+
+					if(values.size != 3)
+					{
+						//do something
+					}
+					else
+					{
+						controlPointsArr[surfacesCount][i].push(new THREE.Vector3(parseFloat(values[0]),
+																			   parseFloat(values[1]),
+																			   parseFloat(values[2])));
+					}
+
+					line = line.substring(firstOpeningBracketIndex); 
+				}
+				
+			}
+		}
+
+		function parseTriangularSurfaces(str)
+		{
+
+		}
+
 		$(document).ready(function()
 		{
             var scene = new THREE.Scene();
@@ -57,6 +147,15 @@
 			}
 
 			var gui = new dat.GUI({width:370});
+
+			var params = {
+    						loadFile : function()
+    						{ 
+            					document.getElementById("fileInput").click();
+    						}
+						};
+			gui.add(params, "loadFile").name("Load file");
+
 			gui.addColor(controls, "color").name("Color").onChange(function(c)
 			{
 				cameraControls.enabled = false;
@@ -112,21 +211,21 @@
 				update();
 			});
 			
-			var controlPoints = [];
+			// var controlPoints = [];
 
-            var meshSize = 4;
-            var x = -5;
-            var y = 0;
-            var z = -5;
-            var step = 15;
-            for(var i = 0; i < meshSize; i++)
-            {
-            	controlPoints.push([]);
-            	for(var j = 0; j < meshSize; j++)
-            	{
-            		controlPoints[i].push(new THREE.Vector3(x + j * step, y, z + i * step));
-            	}
-            }
+   //          var meshSize = 4;
+   //          var x = -5;
+   //          var y = 0;
+   //          var z = -5;
+   //          var step = 15;
+   //          for(var i = 0; i < meshSize; i++)
+   //          {
+   //          	controlPoints.push([]);
+   //          	for(var j = 0; j < meshSize; j++)
+   //          	{
+   //          		controlPoints[i].push(new THREE.Vector3(x + j * step, y, z + i * step));
+   //          	}
+   //          }
 
             var triangleControlPoints = [new THREE.Vector3(-16, 0, -8), 
     									 new THREE.Vector3(8, 0, -12), 
@@ -879,7 +978,8 @@
 	    		}
 
 	    		drawBezierTriangularSurface(triangleControlPoints, controls.color);
-				drawBezierSurface(controlPoints, controls.color);
+	    		if(controlPointsArr.length > 0)
+					drawBezierSurface(controlPointsArr[0], controls.color);
 
 	    		if(controls.drawDebugElements)
 				{
@@ -1117,8 +1217,8 @@
 
 				drawScene();
             	var controlMeshColor = 0x000000;
-            	if(controls.showControlPoints)
-            		drawControlMesh(controlPoints, controlPointsSpheres, controlMeshColor, controlMeshColor);
+            	if(controls.showControlPoints && controlPointsArr.length > 0)
+            		drawControlMesh(controlPointsArr[0], controlPointsSpheres, controlMeshColor, controlMeshColor);
 
             	if(controls.axisHelper)
             		scene.add(axisHelper);
