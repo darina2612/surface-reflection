@@ -57,6 +57,8 @@
 			//4
 			//(x, y, z), (x, y, z), ...
 			//....
+
+			controlPointsArr = [];
 			var firstNewLineIndex = str.indexOf("\n");
 			var meshSize = parseInt(str.substring(0, firstNewLineIndex));
 
@@ -67,10 +69,11 @@
 			{
 				controlPointsArr.push([]);
 
+				str = str.substring(firstNewLineIndex + 1);
 				prevNewLineIndex = firstNewLineIndex;
 				firstNewLineIndex = str.indexOf("\n") + 1;
 
-				var line = str.substring(prevNewLineIndex + 1, firstNewLineIndex);
+				var line = str.substring(prevNewLineIndex, firstNewLineIndex);
 
 				for(var j = 0; j < meshSize; ++j)
 				{
