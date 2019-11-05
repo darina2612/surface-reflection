@@ -62,29 +62,26 @@
 			var firstNewLineIndex = str.indexOf("\n");
 			var meshSize = parseInt(str.substring(0, firstNewLineIndex));
 
-			var prevNewLineIndex;
 			var surfacesCount = 0;
 			controlPointsArr.push([]);
 			for(var i = 0; i < meshSize; ++ i)
 			{
-				controlPointsArr.push([]);
+				controlPointsArr[surfacesCount].push([]);
 
 				str = str.substring(firstNewLineIndex + 1);
-				prevNewLineIndex = firstNewLineIndex;
-				firstNewLineIndex = str.indexOf("\n") + 1;
+				firstNewLineIndex = str.indexOf("\n");
 
-				var line = str.substring(prevNewLineIndex, firstNewLineIndex);
+				var line = str.substring(0, firstNewLineIndex);
 
 				for(var j = 0; j < meshSize; ++j)
 				{
 					var firstOpeningBracketIndex = line.indexOf("("); 
-					line = line.substring(firstOpeningBracketIndex);
 					var firstClosingBracketIndex = line.indexOf(")");
-					var pointStr = line.substring(firstOpeningBracketIndex + 1, firstClosingBracketIndex - 1);
+					var pointStr = line.substring(firstOpeningBracketIndex + 1, firstClosingBracketIndex);
 
 					var values = pointStr.split(",");
 
-					if(values.size != 3)
+					if(values.length != 3)
 					{
 						//do something
 					}
@@ -95,7 +92,7 @@
 																			   parseFloat(values[2])));
 					}
 
-					line = line.substring(firstOpeningBracketIndex); 
+					line = line.substring(firstClosingBracketIndex + 1); 
 				}
 				
 			}
