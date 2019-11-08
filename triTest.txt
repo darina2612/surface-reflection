@@ -1,0 +1,12 @@
+t
+10
+new THREE.Vector3(-16, 0, -8), 
+    									 new THREE.Vector3(8, 0, -12), 
+      									 new THREE.Vector3(-8, 0, -12), 
+      									 new THREE.Vector3(16, 0, -8), 
+      									 new THREE.Vector3(12, -8, -6), 
+      									 new THREE.Vector3(8, -8, 6), 
+      									 new THREE.Vector3(0, 0, 12), 
+      									 new THREE.Vector3(-8, -8, 6), 
+      									 new THREE.Vector3(-12, -8, -6),
+      									 new THREE.Vector3(0, 8, 0)];

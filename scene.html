@@ -100,6 +100,42 @@
 
 		function parseTriangularSurfaces(str)
 		{
+			//t
+			//10
+			//(x, y, z), (x, y, z), ...
+
+			var firstNewLineIndex = str.indexOf("\n");
+			var poinsCount = parseInt(str.substring(0, firstNewLineIndex));
+
+			var surfacesCount = 0;
+			trianglesControlPoints.push([]);
+			
+			controlPointsArr[surfacesCount].push([]);
+
+			str = str.substring(firstNewLineIndex + 1);
+			firstNewLineIndex = str.indexOf("\n");
+
+			var line = str.substring(0, firstNewLineIndex);
+
+			for(var j = 0; j < meshSize; ++j)
+			{
+				var firstOpeningBracketIndex = line.indexOf("("); 
+				var firstClosingBracketIndex = line.indexOf(")");
+				var pointStr = line.substring(firstOpeningBracketIndex + 1, firstClosingBracketIndex);
+
+				var values = pointStr.split(",");
+
+				if(values.length != 3)
+				{
+					//do something
+				}
+				else
+				{
+					trianglesControlPoints[surfacesCount].push(new THREE.Vector3(parseFloat(values[0]),
+																			   	 parseFloat(values[1]),
+																			   	 parseFloat(values[2])));
+				}
+			}
 
 		}
 
