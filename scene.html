@@ -15,6 +15,19 @@
  -->		<input id="fileInput" type="file" name="name" style="display: none;"/>
 	<div id="WebGL-output"></div>
 	<script type="text/javascript">
+
+		var language = 'EN';
+		let localizationMap = new Map([
+  										['loadFile', new Map(['BG', ''], ['EN', 'Load File'] )],
+  										['radius', new Map(['BG', ''], ['EN', 'Radius'] )],
+  										['onion',    new Map(['BG', ''], ['EN', ''] )]
+									  ]);
+
+		function getLocalization(key)
+		{
+			return localizationMap[key][language];
+		}
+
 		$(document).ready(function()
 		{
 			var isTriangleSurface = false;
@@ -206,7 +219,7 @@
     						}
 						};
 
-			gui.add(params, "loadFile").name("Load file");
+			gui.add(params, "loadFile").name(getLocalization("loadFile"));
 
 			gui.addColor(controls, "color").name("Color").onChange(function(c)
 			{
@@ -219,7 +232,7 @@
                 });
 			});
 
-			var radiusController = gui.add(controls, "radius").min(1).max(10).step(1).name("Radius");
+			var radiusController = gui.add(controls, "radius").min(1).max(10).step(1).name(getLocalization("radius"));
 			radiusController.onChange(function(n)
 			{
 				console.log("radius::onChange");
