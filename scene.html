@@ -54,26 +54,85 @@
 			function parseRectangularSurfaces(str)
 			{
 				//r
+				//1 //surfaces count
 				//4
 				//(x, y, z), (x, y, z), ...
 				//....
 
 				controlPointsArr = [];
 				var firstNewLineIndex = str.indexOf("\n");
-				var meshSize = parseInt(str.substring(0, firstNewLineIndex));
-
-				var surfacesCount = 0;
-				controlPointsArr.push([]);
-				for(var i = 0; i < meshSize; ++ i)
+				var surfacesCount = parseInt(str.substring(0, firstNewLineIndex));
+				
+				for(var surfacesIndex = 0; surfacesIndex < surfacesCount; ++surfacesIndex)
 				{
-					controlPointsArr[surfacesCount].push([]);
+					str = str.substring(firstNewLineIndex + 1);
+					firstNewLineIndex = str.indexOf("\n");
+					meshSize = parseInt(str.substring(0, firstNewLineIndex));
 
+					controlPointsArr.push([]);
+					for(var i = 0; i < meshSize; ++ i)
+					{
+						controlPointsArr[surfacesIndex].push([]);
+
+						str = str.substring(firstNewLineIndex + 1);
+						firstNewLineIndex = str.indexOf("\n");
+
+						var line = str.substring(0, firstNewLineIndex);
+
+						for(var j = 0; j < meshSize; ++j)
+						{
+							var firstOpeningBracketIndex = line.indexOf("("); 
+							var firstClosingBracketIndex = line.indexOf(")");
+							var pointStr = line.substring(firstOpeningBracketIndex + 1, firstClosingBracketIndex);
+
+							var values = pointStr.split(",");
+
+							if(values.length != 3)
+							{
+								//do something
+							}
+							else
+							{
+								controlPointsArr[surfacesIndex][i].push(new THREE.Vector3(parseFloat(values[0]),
+																				   		  parseFloat(values[1]),
+																				   		  parseFloat(values[2])));
+							}
+
+							line = line.substring(firstClosingBracketIndex + 1); 
+						}
+					
+					}
+				}
+			}
+
+			function parseTriangularSurfaces(str)
+			{
+				//t
+				//10
+				//2 //surfaces count
+				//(x, y, z), (x, y, z), ...
+
+				trianglesControlPoints = []
+				
+				var firstNewLineIndex = str.indexOf("\n");
+				var surfacesCount = parseInt(str.substring(0, firstNewLineIndex));
+
+				for(var surfacesIndex = 0; surfacesIndex < surfacesCount; ++surfacesIndex)
+				{
+					
 					str = str.substring(firstNewLineIndex + 1);
 					firstNewLineIndex = str.indexOf("\n");
 
+					var poinsCount = parseInt(str.substring(0, firstNewLineIndex));
+				
+					str = str.substring(firstNewLineIndex + 1);
+					firstNewLineIndex = str.indexOf("\n");
+				
 					var line = str.substring(0, firstNewLineIndex);
 
-					for(var j = 0; j < meshSize; ++j)
+					trianglesControlPoints.push([]);
+
+					for(var j = 0; j < poinsCount; ++j)
 					{
 						var firstOpeningBracketIndex = line.indexOf("("); 
 						var firstClosingBracketIndex = line.indexOf(")");
@@ -87,56 +146,14 @@
 						}
 						else
 						{
-							controlPointsArr[surfacesCount][i].push(new THREE.Vector3(parseFloat(values[0]),
-																			   		  parseFloat(values[1]),
-																			   		  parseFloat(values[2])));
+							trianglesControlPoints[surfacesIndex].push(new THREE.Vector3(parseFloat(values[0]),
+																				   	 	 parseFloat(values[1]),
+																				   	 	 parseFloat(values[2])));
 						}
 
-						line = line.substring(firstClosingBracketIndex + 1); 
+						line = line.substring(firstClosingBracketIndex + 1);
 					}
-				
 				}
-			}
-
-			function parseTriangularSurfaces(str)
-			{
-				//t
-				//10
-				//(x, y, z), (x, y, z), ...
-
-				var firstNewLineIndex = str.indexOf("\n");
-				var poinsCount = parseInt(str.substring(0, firstNewLineIndex));
-
-				var surfacesCount = 0;
-				trianglesControlPoints.push([]);
-			
-				str = str.substring(firstNewLineIndex + 1);
-				firstNewLineIndex = str.indexOf("\n");
-
-				var line = str.substring(0, firstNewLineIndex);
-
-				for(var j = 0; j < poinsCount; ++j)
-				{
-					var firstOpeningBracketIndex = line.indexOf("("); 
-					var firstClosingBracketIndex = line.indexOf(")");
-					var pointStr = line.substring(firstOpeningBracketIndex + 1, firstClosingBracketIndex);
-
-					var values = pointStr.split(",");
-
-					if(values.length != 3)
-					{
-						//do something
-					}
-					else
-					{
-						trianglesControlPoints[surfacesCount].push(new THREE.Vector3(parseFloat(values[0]),
-																			   	 	 parseFloat(values[1]),
-																			   	 	 parseFloat(values[2])));
-					}
-
-					line = line.substring(firstClosingBracketIndex + 1);
-				}
-
 			}
 
             var scene = new THREE.Scene();
@@ -1012,10 +1029,14 @@
                 	scene.add(lightAbove);
 	    		}
 
-	    		if(trianglesControlPoints.length > 0)
-	    			drawBezierTriangularSurface(trianglesControlPoints[0], controls.color);
-	    		if(controlPointsArr.length > 0)
-					drawBezierSurface(controlPointsArr[0], controls.color);
+	    		trianglesControlPoints.forEach(function (points, index, array)
+	    		{
+	    			drawBezierTriangularSurface(points, controls.color);
+	    		});
+	    		controlPointsArr.forEach(function (points, index, array)
+	    		{
+					drawBezierSurface(points, controls.color);
+				});
 
 	    		if(controls.drawDebugElements)
 				{
