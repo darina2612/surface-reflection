@@ -16,16 +16,20 @@
 	<div id="WebGL-output"></div>
 	<script type="text/javascript">
 
-		var language = 'EN';
 		let localizationMap = new Map([
-  										['loadFile', new Map(['BG', ''], ['EN', 'Load File'] )],
-  										['radius', new Map(['BG', ''], ['EN', 'Radius'] )],
-  										['onion',    new Map(['BG', ''], ['EN', ''] )]
+  										['loadFile', new Map([['BG', 'Отвори файл'], ['EN', 'Load File']])],
+  										['radius', new Map([['BG', 'Радиус'], ['EN', 'Radius']])],
+  										['color', new Map([['BG', 'Цвят'], ['EN', 'Color']])],
+  										['interactiveCamera', new Map([['BG', 'Интерактивна камера'], ['EN', 'Interactive Camera']])],
+  										['showAxisHelper', new Map([['BG', 'Покажи хомощна КС'], ['EN', 'Show Axis Helper']])],
+  										['showControlPoints', new Map([['BG', 'Покажи контролните точки'], ['EN', 'Show Control Points']])],
+  										['vizualizeAsWireframe', new Map([['BG', 'Покажи мрежа'], ['EN', 'Vizualize As Wireframe']])]	
 									  ]);
 
-		function getLocalization(key)
+		function getLocalizationForLanguage(key, language)
 		{
-			return localizationMap[key][language];
+			var keyTranslations = localizationMap.get(key);
+			return keyTranslations.get(language);
 		}
 
 		$(document).ready(function()
@@ -195,6 +199,7 @@
             $(cameraControls).on("change", renderScene);
             cameraControls.target = new THREE.Vector3(20,0,15);
 
+
             // interactive controls
 			var controls = new function()
 			{
@@ -208,6 +213,12 @@
 				this.drawDebugElements = false;
 				this.projectCurves = true;
 				this.drawPlane = true;
+				this.lang = 'EN';
+			}
+
+			function getLocalization(key)
+			{
+				return getLocalizationForLanguage(key, controls.lang);
 			}
 
 			var gui = new dat.GUI({width:370});
@@ -216,12 +227,26 @@
     						loadFile : function()
     						{ 
             					document.getElementById("fileInput").click();
-    						}
+    						},
+
+    						changeLang : function()
+    						{
+    							if(controls.lang == 'EN')
+									controls.lang = 'BG'
+
+								else if(controls.lang == 'BG')
+									controls.lang = 'EN'
+
+								for (var i in gui.__controllers)
+    								gui.__controllers[i].updateDisplay();
+							}
 						};
 
-			gui.add(params, "loadFile").name(getLocalization("loadFile"));
+			gui.add(params, "changeLang").name(controls.lang);
 
-			gui.addColor(controls, "color").name("Color").onChange(function(c)
+			gui.add(params, "loadFile").name(getLocalization('loadFile'));
+
+			gui.addColor(controls, "color").name(getLocalization('color')).onChange(function(c)
 			{
 				cameraControls.enabled = false;
 				update();
@@ -232,7 +257,7 @@
                 });
 			});
 
-			var radiusController = gui.add(controls, "radius").min(1).max(10).step(1).name(getLocalization("radius"));
+			var radiusController = gui.add(controls, "radius").min(1).max(10).step(1).name(getLocalization('radius'));
 			radiusController.onChange(function(n)
 			{
 				console.log("radius::onChange");
@@ -247,19 +272,19 @@
 				renderScene();
 			});
 
-			gui.add(controls, "interactiveCamera").name("Interactive Camera").onChange(function(v) {
+			gui.add(controls, "interactiveCamera").name(getLocalization('interactiveCamera')).onChange(function(v) {
 				cameraControls.enabled = v;
 			});
 
-			gui.add(controls, "axisHelper").name("Show Axis Helper").onChange(function(v) {
+			gui.add(controls, "axisHelper").name(getLocalization('showAxisHelper')).onChange(function(v) {
 				update();
 			});
 			var controlx, controly, controlz;
-			gui.add(controls, "showControlPoints").name("Show Control Points").onChange(function(visibility)
+			gui.add(controls, "showControlPoints").name(getLocalization('showControlPoints')).onChange(function(visibility)
 			{
 				update();
 			});
-			gui.add(controls, "asWireframe").name("Vizualize as Wireframe").onChange(function(v)
+			gui.add(controls, "asWireframe").name(getLocalization('vizualizeAsWireframe')).onChange(function(v)
 			{
 				update();
 			});
@@ -267,14 +292,14 @@
 			// {
 			// 	update();
 			// });
-			gui.add(controls, "projectCurves").name("Project curves").onChange(function(v)
-			{
-				update();
-			});
-			gui.add(controls, "drawPlane").name("Draw plane").onChange(function(v)
-			{
-				update();
-			});
+			// gui.add(controls, "projectCurves").name("Project curves").onChange(function(v)
+			// {
+			// 	update();
+			// });
+			// gui.add(controls, "drawPlane").name("Draw plane").onChange(function(v)
+			// {
+			// 	update();
+			// });
 			
 			// var controlPoints = [];
 
