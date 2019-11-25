@@ -29,7 +29,15 @@
 		function getLocalizationForLanguage(key, language)
 		{
 			var keyTranslations = localizationMap.get(key);
-			return keyTranslations.get(language);
+			if(keyTranslations === "undefined")
+			{
+				console.log("No localization input for " + key);
+				return "";
+			}
+			else
+			{
+				return keyTranslations.get(language);
+			}
 		}
 
 		$(document).ready(function()
@@ -207,8 +215,8 @@
 				this.radius = 5;
 				this.showControlPoints = true;
 				this.interactiveCamera = true;
-				this.axisHelper = false;
-				this.asWireframe = false;
+				this.showAxisHelper = false;
+				this.vizualizeAsWireframe = false;
 				this.drawAuxSurface = false;
 				this.drawDebugElements = false;
 				this.projectCurves = true;
@@ -234,19 +242,18 @@
     							if(controls.lang == 'EN')
 									controls.lang = 'BG'
 
-								else if(controls.lang == 'BG')
+					 			else if(controls.lang == 'BG')
 									controls.lang = 'EN'
-
-								for (var i in gui.__controllers)
-    								gui.__controllers[i].updateDisplay();
 							}
 						};
 
-			gui.add(params, "changeLang").name(controls.lang);
+			var controllers = new Map();
 
-			gui.add(params, "loadFile").name(getLocalization('loadFile'));
+			var langControl = gui.add(params, "changeLang").name(controls.lang);
 
-			gui.addColor(controls, "color").name(getLocalization('color')).onChange(function(c)
+			controllers.set("loadFile", gui.add(params, "loadFile").name(getLocalization('loadFile')));
+
+			controllers.set("color", gui.addColor(controls, "color").name(getLocalization('color')).onChange(function(c)
 			{
 				cameraControls.enabled = false;
 				update();
@@ -255,7 +262,7 @@
                     $(document).off("mouseup");
                     cameraControls.enabled = true;  // enabling camera controls again
                 });
-			});
+			}));
 
 			var radiusController = gui.add(controls, "radius").min(1).max(10).step(1).name(getLocalization('radius'));
 			radiusController.onChange(function(n)
@@ -272,61 +279,37 @@
 				renderScene();
 			});
 
-			gui.add(controls, "interactiveCamera").name(getLocalization('interactiveCamera')).onChange(function(v) {
+			controllers.set("radius", radiusController);
+
+			controllers.set("interactiveCamera", gui.add(controls, "interactiveCamera").name(getLocalization('interactiveCamera')).onChange(function(v) {
 				cameraControls.enabled = v;
-			});
+			}));
 
-			gui.add(controls, "axisHelper").name(getLocalization('showAxisHelper')).onChange(function(v) {
+			controllers.set("showAxisHelper", gui.add(controls, "showAxisHelper").name(getLocalization('showAxisHelper')).onChange(function(v) {
 				update();
-			});
+			}));
 			var controlx, controly, controlz;
-			gui.add(controls, "showControlPoints").name(getLocalization('showControlPoints')).onChange(function(visibility)
+			controllers.set("showControlPoints", gui.add(controls, "showControlPoints").name(getLocalization('showControlPoints')).onChange(function(visibility)
 			{
 				update();
-			});
-			gui.add(controls, "asWireframe").name(getLocalization('vizualizeAsWireframe')).onChange(function(v)
+			}));
+			controllers.set("vizualizeAsWireframe", gui.add(controls, "vizualizeAsWireframe").name(getLocalization('vizualizeAsWireframe')).onChange(function(v)
 			{
 				update();
+			}));
+
+			langControl.onFinishChange(function()
+			{
+				langControl.name(controls.lang);
+
+				if(!(controllers === "undefined"))
+				{
+					controllers.forEach(function(value, key, map)
+					{
+						value.name(getLocalization(key));
+					});
+				}
 			});
-			// gui.add(controls, "drawAuxSurface").name("Draw aux surface").onChange(function(v)
-			// {
-			// 	update();
-			// });
-			// gui.add(controls, "projectCurves").name("Project curves").onChange(function(v)
-			// {
-			// 	update();
-			// });
-			// gui.add(controls, "drawPlane").name("Draw plane").onChange(function(v)
-			// {
-			// 	update();
-			// });
-			
-			// var controlPoints = [];
-
-   //          var meshSize = 4;
-   //          var x = -5;
-   //          var y = 0;
-   //          var z = -5;
-   //          var step = 15;
-   //          for(var i = 0; i < meshSize; i++)
-   //          {
-   //          	controlPoints.push([]);
-   //          	for(var j = 0; j < meshSize; j++)
-   //          	{
-   //          		controlPoints[i].push(new THREE.Vector3(x + j * step, y, z + i * step));
-   //          	}
-   //          }
-
-            // var triangleControlPoints = [new THREE.Vector3(-16, 0, -8), 
-    								// 	 new THREE.Vector3(8, 0, -12), 
-      						// 			 new THREE.Vector3(-8, 0, -12), 
-      						// 			 new THREE.Vector3(16, 0, -8), 
-      						// 			 new THREE.Vector3(12, -8, -6), 
-      						// 			 new THREE.Vector3(8, -8, 6), 
-      						// 			 new THREE.Vector3(0, 0, 12), 
-      						// 			 new THREE.Vector3(-8, -8, 6), 
-      						// 			 new THREE.Vector3(-12, -8, -6),
-      						// 			 new THREE.Vector3(0, 8, 0)];
 
             var controlPointsSpheres = [];
 
