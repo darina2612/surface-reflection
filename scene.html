@@ -18,11 +18,11 @@
 
 		let localizationMap = new Map([
   										['loadFile', new Map([['BG', 'Отвори файл'], ['EN', 'Load File']])],
-  										['radius', new Map([['BG', 'Радиус'], ['EN', 'Radius']])],
+  										['reflectionWidth', new Map([['BG', 'Ширина на линията'], ['EN', 'Line width']])],
   										['color', new Map([['BG', 'Цвят'], ['EN', 'Color']])],
   										['interactiveCamera', new Map([['BG', 'Интерактивна камера'], ['EN', 'Interactive Camera']])],
   										['showAxisHelper', new Map([['BG', 'Покажи хомощна КС'], ['EN', 'Show Axis Helper']])],
-  										['showControlPoints', new Map([['BG', 'Покажи контролните точки'], ['EN', 'Show Control Points']])],
+  										//['showControlPoints', new Map([['BG', 'Покажи контролните точки'], ['EN', 'Show Control Points']])],
   										['vizualizeAsWireframe', new Map([['BG', 'Покажи мрежа'], ['EN', 'Vizualize As Wireframe']])]	
 									  ]);
 
@@ -212,8 +212,9 @@
 			var controls = new function()
 			{
 				this.color = 0xff0000;
-				this.radius = 5;
-				this.showControlPoints = true;
+				this.radius = 2;
+				this.reflectionWidth = 1;
+				this.showControlPoints = false;
 				this.interactiveCamera = true;
 				this.showAxisHelper = false;
 				this.vizualizeAsWireframe = false;
@@ -264,22 +265,19 @@
                 });
 			}));
 
-			var radiusController = gui.add(controls, "radius").min(1).max(10).step(1).name(getLocalization('radius'));
+			var radiusController = gui.add(controls, "reflectionWidth").min(0).max(7).step(1).name(getLocalization('reflectionWidth'));
 			radiusController.onChange(function(n)
 			{
-				console.log("radius::onChange");
 				cameraControls.enabled = false;
 			});
 			radiusController.onFinishChange(function(n)
 			{
-				console.log("radius::onFinishChange");
-
 				cameraControls.enabled = true;
 				update();
 				renderScene();
 			});
 
-			controllers.set("radius", radiusController);
+			controllers.set("reflectionWidth", radiusController);
 
 			controllers.set("interactiveCamera", gui.add(controls, "interactiveCamera").name(getLocalization('interactiveCamera')).onChange(function(v) {
 				cameraControls.enabled = v;
@@ -288,11 +286,10 @@
 			controllers.set("showAxisHelper", gui.add(controls, "showAxisHelper").name(getLocalization('showAxisHelper')).onChange(function(v) {
 				update();
 			}));
-			var controlx, controly, controlz;
-			controllers.set("showControlPoints", gui.add(controls, "showControlPoints").name(getLocalization('showControlPoints')).onChange(function(visibility)
-			{
-				update();
-			}));
+			// controllers.set("showControlPoints", gui.add(controls, "showControlPoints").name(getLocalization('showControlPoints')).onChange(function(visibility)
+			// {
+			// 	update();
+			// })); 
 			controllers.set("vizualizeAsWireframe", gui.add(controls, "vizualizeAsWireframe").name(getLocalization('vizualizeAsWireframe')).onChange(function(v)
 			{
 				update();
@@ -533,7 +530,7 @@
 	                distanceSurfaceGeometry.vertices = distanceSurfaceVertices;
 	                distanceSurfaceGeometry.computeFaceNormals();
 	                distanceSurfaceGeometry.computeVertexNormals();
-	                var distanceSurfaceMaterial = new THREE.MeshLambertMaterial({color: 0x0000ff, wireframe: controls.asWireframe});
+	                var distanceSurfaceMaterial = new THREE.MeshLambertMaterial({color: 0x0000ff, wireframe: controls.vizualizeAsWireframe});
 	                var distanceSurface = new THREE.Mesh(distanceSurfaceGeometry, distanceSurfaceMaterial);
 	                distanceSurface.material.side = THREE.DoubleSide;
 
@@ -823,7 +820,7 @@
 	                bezierSurfaceGeometry.faces = bezierSurfaceFaces;
 	                bezierSurfaceGeometry.computeFaceNormals();
 	                bezierSurfaceGeometry.computeVertexNormals();
-	                var bezierSurfaceMaterial = new THREE.MeshLambertMaterial({color: color, wireframe: controls.asWireframe});
+	                var bezierSurfaceMaterial = new THREE.MeshLambertMaterial({color: color, wireframe: controls.vizualizeAsWireframe});
 	                var bezierSurface = new THREE.Mesh(bezierSurfaceGeometry, bezierSurfaceMaterial);
 	                bezierSurface.material.side = THREE.DoubleSide;
 	                if(controls.drawPlane)
@@ -835,14 +832,12 @@
 
 	                calculateDistanceSurfaceGeometry(distanceSurfaceGeometry, bezierSurfaceVertices, bezierSurfaceFaces, uvs)
 
-	             //    if(controls.drawAuxSurface)
-	             //    {
-	             //    	scene.add(distanceSurface);
-	            	// }
-
-					calculateReflectionsForRarius(0, edgesInfo, facesInfo, distanceSurfaceGeometry, controlPoints);
-					calculateReflectionsForRarius(controls.radius, edgesInfo, facesInfo, distanceSurfaceGeometry, controlPoints);
-					calculateReflectionsForRarius(-controls.radius, edgesInfo, facesInfo, distanceSurfaceGeometry, controlPoints);
+	            	for(var i = 0; i <= controls.reflectionWidth; i++)
+	                {
+	                	calculateReflectionsForRarius(controls.radius * i, edgesInfo, facesInfo, distanceSurfaceGeometry, controlPoints);
+	                	if(i > 0)
+							calculateReflectionsForRarius(-controls.radius * i, edgesInfo, facesInfo, distanceSurfaceGeometry, controlPoints);
+					}
 
 					if(controls.drawDebugElements)
 					{
@@ -1024,7 +1019,7 @@
 	                
 	                triangularBezierSurfaceGeometry.computeFaceNormals();
 	                triangularBezierSurfaceGeometry.computeVertexNormals();
-	                var bezierSurfaceMaterial = new THREE.MeshLambertMaterial({color: color, wireframe: controls.asWireframe});
+	                var bezierSurfaceMaterial = new THREE.MeshLambertMaterial({color: color, wireframe: controls.vizualizeAsWireframe});
 	                var triangularBezierSurface = new THREE.Mesh(triangularBezierSurfaceGeometry, bezierSurfaceMaterial);
 	                triangularBezierSurface.material.side = THREE.DoubleSide;
 	                if(controls.drawPlane)
@@ -1035,9 +1030,12 @@
 	                calculateDistanceSurfaceGeometry(distanceSurfaceGeometry, triangularBezierSurfaceGeometry.vertices,
 	                								 triangularBezierSurfaceGeometry.faces, uvs);
 
-	                calculateReflectionsForRarius(0, edgesInfo, facesInfo, distanceSurfaceGeometry, controlPoints, true);
-					calculateReflectionsForRarius(controls.radius, edgesInfo, facesInfo, distanceSurfaceGeometry, controlPoints, true);
-					calculateReflectionsForRarius(-controls.radius, edgesInfo, facesInfo, distanceSurfaceGeometry, controlPoints, true);
+	                for(var i = 0; i <= controls.reflectionWidth; i++)
+	                {
+	                	calculateReflectionsForRarius(controls.radius * i, edgesInfo, facesInfo, distanceSurfaceGeometry, controlPoints, true);
+	                	if(i > 0)
+							calculateReflectionsForRarius(-controls.radius * i, edgesInfo, facesInfo, distanceSurfaceGeometry, controlPoints, true);
+					}
   
 
 	                var lightBelow = new THREE.PointLight(0xffffff);
@@ -1140,7 +1138,7 @@
 
             function drawSourceCylinder()
             {
-				var cylinderGeometry = new THREE.CylinderGeometry(controls.radius, controls.radius, 20, 32);
+				var cylinderGeometry = new THREE.CylinderGeometry(controls.reflectionWidth, controls.reflectionWidth, 20, 32);
 				cylinderGeometry.applyMatrix(new THREE.Matrix4().makeRotationX(Math.PI / 2));
 				var opacity = 1.0;
 				if(controls.drawDebugElements)
@@ -1159,7 +1157,7 @@
             	var planeGeometry = new THREE.PlaneGeometry(60, 60);
             	planeGeometry.applyMatrix(new THREE.Matrix4().makeRotationX(Math.PI / 2));
             	planeGeometry.applyMatrix(new THREE.Matrix4().makeTranslation(20, y, 0));
-				var material = new THREE.MeshLambertMaterial({color: 0xff00ff, wireframe: controls.asWireframe});
+				var material = new THREE.MeshLambertMaterial({color: 0xff00ff, wireframe: controls.vizualizeAsWireframe});
 				var plane = new THREE.Mesh(planeGeometry, material);
 				scene.add(plane);
             }
