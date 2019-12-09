@@ -76,6 +76,12 @@
 				}
 			});
 
+			function clearScene()
+			{
+				controlPointsArr = [];
+				trianglesControlPoints = [];
+			}
+
 			function parseRectangularSurfaces(str)
 			{
 				//r
@@ -84,7 +90,8 @@
 				//(x, y, z), (x, y, z), ...
 				//....
 
-				controlPointsArr = [];
+				clearScene();
+
 				var firstNewLineIndex = str.indexOf("\n");
 				var surfacesCount = parseInt(str.substring(0, firstNewLineIndex));
 				
@@ -137,7 +144,7 @@
 				//2 //surfaces count
 				//(x, y, z), (x, y, z), ...
 
-				trianglesControlPoints = []
+				clearScene();
 				
 				var firstNewLineIndex = str.indexOf("\n");
 				var surfacesCount = parseInt(str.substring(0, firstNewLineIndex));
