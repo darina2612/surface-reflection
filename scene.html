@@ -679,6 +679,7 @@
 						{
 							if(contour3dPoints.length == 1)
 							{
+								console.log("Single point contour");
 								//scene.add(createSphere(contour3dPoints[0], 0x000000, "", 0.2));
 							}
 						}
@@ -1180,7 +1181,6 @@
                 
                 $(document).on("mousemove", function(e)
                 {
-                    console.log("mousemove");
                     var mouseMove = new THREE.Vector3();
                     mouseMove.x = (e.clientX / renderer.domElement.width) * 2 - 1;
                     mouseMove.y = - (e.clientY / renderer.domElement.height) * 2 + 1;
@@ -1198,15 +1198,12 @@
 
 			function handleSourceCylinderClick()
             {
-            	console.log("Source cylinder clicked");
-
                 var planeNormal = sourceCylinder.position.clone().sub(camera.position);
                 var plane = new THREE.Plane();
                 plane.setFromNormalAndCoplanarPoint(planeNormal, sourceCylinder.position);
                 
                 $(document).on("mousemove", function(e)
                 {
-                    console.log("mousemove");
                     var mouseMove = new THREE.Vector3();
                     mouseMove.x = (e.clientX / renderer.domElement.width) * 2 - 1;
                     mouseMove.y = - (e.clientY / renderer.domElement.height) * 2 + 1;
