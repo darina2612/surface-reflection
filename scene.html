@@ -16,6 +16,14 @@
 	<div id="WebGL-output"></div>
 	<script type="text/javascript">
 
+		function last(array)
+		{
+			if(array.length == 0)
+				return null;
+
+			return array[array.length - 1];
+		}
+
 		let localizationMap = new Map([
   										['loadFile', new Map([['BG', 'Отвори файл'], ['EN', 'Load File']])],
   										['reflectionWidth', new Map([['BG', 'Ширина на линията'], ['EN', 'Line width']])],
@@ -547,7 +555,7 @@
 	            	}
 				}
 
-				function calculateReflectionsForRarius(c, edgesInfo, facesInfo, distanceSurfaceGeometry, controlPoints, isTriangle = false)
+				function calculateReflectionsForRarius(c, edgesInfo, facesInfo, distanceSurfaceGeometry, controlPoints, maxDistance, isTriangle = false)
             	{
 	                var planeNormal = new THREE.Vector3(0, 0, 1);
 
@@ -658,7 +666,7 @@
 					
 					contours.forEach(function(contour, index, array)
 					{
-						var contour3dPoints = [];
+						var contour3dPoints = [[]];
 						
 						contour.forEach(function(point, index, array)
 						{
@@ -672,31 +680,45 @@
 								point3d = getSurfacePointAt(point.u, point.v, controlPoints);
 							}
 
-							contour3dPoints.push(point3d);
+							var lastContour = last(contour3dPoints);
+							var lastPoint = last(lastContour);
+							if(lastPoint != null)
+							{
+								var distance = lastPoint.distanceTo(point3d);
+								if(distance > maxDistance)
+								{
+									contour3dPoints.push([]);
+								}
+							}
+							
+							contour3dPoints[contour3dPoints.length - 1].push(point3d);
 						});
 
-						if(contour3dPoints.length <= 1)
+						contour3dPoints.forEach(function(points, index, array)
 						{
-							if(contour3dPoints.length == 1)
+							if(points.length <= 1)
 							{
-								console.log("Single point contour");
-								//scene.add(createSphere(contour3dPoints[0], 0x000000, "", 0.2));
+								if(points.length == 1)
+								{
+									console.log("Single point contour");
+									//scene.add(createSphere(contour3dPoints[0], 0x000000, "", 0.2));
+								}
 							}
-						}
-						else
-						{
-							var curve = new THREE.CatmullRomCurve3(contour3dPoints, false);
-							var points = curve.getPoints(contour3dPoints.length);
-							var geometry = new THREE.BufferGeometry().setFromPoints(points);
+							else
+							{
+								var curve = new THREE.CatmullRomCurve3(points, false);
+								var points = curve.getPoints(points.length);
+								var geometry = new THREE.BufferGeometry().setFromPoints(points);
 
-							var lineWidth =  3;
-							var color = 0x00ff00;
+								var lineWidth =  3;
+								var color = 0x00ff00;
 
-							var material = new THREE.LineBasicMaterial( { color : color , linewidth : lineWidth} );
-							var curveObject = new THREE.Line( geometry, material );
-							
-							scene.add(curveObject);
-						}
+								var material = new THREE.LineBasicMaterial( { color : color , linewidth : lineWidth} );
+								var curveObject = new THREE.Line( geometry, material );
+								
+								scene.add(curveObject);
+							}
+						});
 					});
 				}
 	                
@@ -840,11 +862,15 @@
 
 	                calculateDistanceSurfaceGeometry(distanceSurfaceGeometry, bezierSurfaceVertices, bezierSurfaceFaces, uvs)
 
+	                var firstFace = bezierSurfaceGeometry.faces[0];
+	                var va = bezierSurfaceGeometry.vertices[firstFace.a];
+	                var vb = bezierSurfaceGeometry.vertices[firstFace.b];
+	                
 	            	for(var i = 0; i <= controls.reflectionWidth; i++)
 	                {
-	                	calculateReflectionsForRarius(controls.radius * i, edgesInfo, facesInfo, distanceSurfaceGeometry, controlPoints);
+	                	calculateReflectionsForRarius(controls.radius * i, edgesInfo, facesInfo, distanceSurfaceGeometry, controlPoints, maxDistance);
 	                	if(i > 0)
-							calculateReflectionsForRarius(-controls.radius * i, edgesInfo, facesInfo, distanceSurfaceGeometry, controlPoints);
+							calculateReflectionsForRarius(-controls.radius * i, edgesInfo, facesInfo, distanceSurfaceGeometry, controlPoints, maxDistance);
 					}
 
 					if(controls.drawDebugElements)
@@ -1038,11 +1064,16 @@
 	                calculateDistanceSurfaceGeometry(distanceSurfaceGeometry, triangularBezierSurfaceGeometry.vertices,
 	                								 triangularBezierSurfaceGeometry.faces, uvs);
 
+	                var firstFace = triangularBezierSurfaceGeometry.faces[0];
+	                var va = triangularBezierSurfaceGeometry.vertices[firstFace.a];
+	                var vb = triangularBezierSurfaceGeometry.vertices[firstFace.b];
+	                var maxDistance =  va.distanceTo(vb) * 2.0;
+
 	                for(var i = 0; i <= controls.reflectionWidth; i++)
 	                {
-	                	calculateReflectionsForRarius(controls.radius * i, edgesInfo, facesInfo, distanceSurfaceGeometry, controlPoints, true);
+	                	calculateReflectionsForRarius(controls.radius * i, edgesInfo, facesInfo, distanceSurfaceGeometry, controlPoints, maxDistance, true);
 	                	if(i > 0)
-							calculateReflectionsForRarius(-controls.radius * i, edgesInfo, facesInfo, distanceSurfaceGeometry, controlPoints, true);
+							calculateReflectionsForRarius(-controls.radius * i, edgesInfo, facesInfo, distanceSurfaceGeometry, controlPoints, maxDistance, true);
 					}
   
 
