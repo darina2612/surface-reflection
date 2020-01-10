@@ -865,6 +865,7 @@
 	                var firstFace = bezierSurfaceGeometry.faces[0];
 	                var va = bezierSurfaceGeometry.vertices[firstFace.a];
 	                var vb = bezierSurfaceGeometry.vertices[firstFace.b];
+	                var maxDistance =  va.distanceTo(vb) * 2.0;
 	                
 	            	for(var i = 0; i <= controls.reflectionWidth; i++)
 	                {
