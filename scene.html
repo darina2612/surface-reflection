@@ -148,8 +148,8 @@
 			function parseTriangularSurfaces(str)
 			{
 				//t
-				//10
 				//2 //surfaces count
+				//10
 				//(x, y, z), (x, y, z), ...
 
 				clearScene();
@@ -1332,7 +1332,7 @@
             	if(controls.showControlPoints && controlPointsArr.length > 0)
             		drawControlMesh(controlPointsArr[0], controlPointsSpheres, controlMeshColor, controlMeshColor);
 
-            	if(controls.axisHelper)
+            	if(controls.showAxisHelper)
             		scene.add(axisHelper);
 
                 renderScene();
