@@ -673,7 +673,7 @@
 							var point3d =  null;
 							if(isTriangle)
 							{
-								point3d = calcCubicBezierTriangleValue(controlPoints, new rst(1 - point.u - point.v, point.v, point.u));
+								point3d = calcCubicBezierTriangleValue(3, controlPoints, new rst(1 - point.u - point.v, point.v, point.u));
 							}
 							else
 							{
@@ -903,20 +903,31 @@
 	    			return rst.r**i * rst.s**j * rst.t**k * fact(n) / (fact(i) * fact(j) * fact(k));  
 	  			}
 
-				function calcCubicBezierTriangleValue(controlPoints, rst)
+				function calcCubicBezierTriangleValue(n, controlPoints, rst)
   				{
     				let p = controlPoints, b = [];
 
-    				b[0] = bernstein(0, 0, 3, rst); // p[0]=p003
-    				b[1] = bernstein(2, 0, 1, rst); // p[1]=p201 
-    				b[2] = bernstein(1, 0, 2, rst); // p[2]=p102
-    				b[3] = bernstein(3, 0, 0, rst); // p[3]=p300
-    				b[4] = bernstein(2, 1, 0, rst); // p[4]=p210
-    				b[5] = bernstein(1, 2, 0, rst); // p[5]=p120
-    				b[6] = bernstein(0, 3, 0, rst); // p[6]=p030
-    				b[7] = bernstein(0, 2, 1, rst); // p[7]=p021
-   					b[8] = bernstein(0, 1, 2, rst); // p[8]=p012
-    				b[9] = bernstein(1, 1, 1, rst); // p[9]=p111
+    				let bIndex = 0;
+    				for(let i = n; i >= 0; i--)
+    				{
+    					for(let j = 0; (i + j) <= n; j++)
+    					{
+    						b[bIndex] = bernstein(i, j, n - i -j, rst);
+    						bIndex++;
+    						console.log("bIndex : " + bIndex);
+    					}
+    				}
+
+					// b[3] = bernstein(3, 0, 0, rst); // p[3]=p300
+					// b[1] = bernstein(2, 0, 1, rst); // p[1]=p201 
+					// b[4] = bernstein(2, 1, 0, rst); // p[4]=p210
+    				// b[2] = bernstein(1, 0, 2, rst); // p[2]=p102
+    				// b[9] = bernstein(1, 1, 1, rst); // p[9]=p111
+    				// b[5] = bernstein(1, 2, 0, rst); // p[5]=p120
+    				// b[0] = bernstein(0, 0, 3, rst); // p[0]=p003
+    				// b[8] = bernstein(0, 1, 2, rst); // p[8]=p012
+    				// b[7] = bernstein(0, 2, 1, rst); // p[7]=p021
+    				// b[6] = bernstein(0, 3, 0, rst); // p[6]=p030
     
     				let x = 0, y = 0, z = 0;
     				for(let i = 0; i <= 9; i++)
@@ -1032,15 +1043,15 @@
 	    				return triangles;
 	  				}
 
-	            	function genTrianglesForCubicBezierTriangle(n, controlPoints, geom)
+	            	function genTrianglesForCubicBezierTriangle(nTriangles, controlPoints, geom)
 	            	{
-	    				var barycentricCoords = getBarycentricCoords(n); // domain in barycentric coordinates   
-	    				var trianglesIndexes = genTrianglesIndexes(n); // indexes of triangles (in bar array)
+	    				var barycentricCoords = getBarycentricCoords(nTriangles); // domain in barycentric coordinates   
+	    				var trianglesIndexes = genTrianglesIndexes(nTriangles); // indexes of triangles (in bar array)
 	        
 	    				var points = [];
 	    				barycentricCoords.forEach(function (rst, index, array)
 	    				{
-	    					points.push(calcCubicBezierTriangleValue(controlPoints, rst));
+	    					points.push(calcCubicBezierTriangleValue(3, controlPoints, rst));
 	    					uvs.push(new uv(rst.t, rst.s));
 	    				});
 
