@@ -29,7 +29,7 @@
   										['reflectionWidth', new Map([['BG', 'Ширина на линията'], ['EN', 'Line width']])],
   										['color', new Map([['BG', 'Цвят'], ['EN', 'Color']])],
   										['interactiveCamera', new Map([['BG', 'Интерактивна камера'], ['EN', 'Interactive Camera']])],
-  										['showAxisHelper', new Map([['BG', 'Покажи хомощна КС'], ['EN', 'Show Axis Helper']])],
+  										['showAxisHelper', new Map([['BG', 'Покажи помощна КС'], ['EN', 'Show Axis Helper']])],
   										//['showControlPoints', new Map([['BG', 'Покажи контролните точки'], ['EN', 'Show Control Points']])],
   										['vizualizeAsWireframe', new Map([['BG', 'Покажи мрежа'], ['EN', 'Vizualize As Wireframe']])]	
 									  ]);
@@ -170,16 +170,16 @@
 					str = str.substring(firstNewLineIndex + 1);
 					firstNewLineIndex = str.indexOf("\n");
 
-					var poinsCount = parseInt(str.substring(0, firstNewLineIndex));
-				
-					str = str.substring(firstNewLineIndex + 1);
-					firstNewLineIndex = str.indexOf("\n");
+					var pointsCount = 0;
+					for(let i = 1; i <= triSurfaceDegree + 1; i++)
+						pointsCount += i;
+			
 				
 					var line = str.substring(0, firstNewLineIndex);
 
 					trianglesControlPoints.push([]);
 
-					for(var j = 0; j < poinsCount; ++j)
+					for(var j = 0; j < pointsCount; ++j)
 					{
 						var firstOpeningBracketIndex = line.indexOf("("); 
 						var firstClosingBracketIndex = line.indexOf(")");
