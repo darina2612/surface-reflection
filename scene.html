@@ -52,6 +52,7 @@
 		{
 			var isTriangleSurface = false;
 
+			var triSurfaceDegree = 0;
 			var trianglesControlPoints = [];
 			var controlPointsArr = [];
 
@@ -160,6 +161,12 @@
 				for(var surfacesIndex = 0; surfacesIndex < surfacesCount; ++surfacesIndex)
 				{
 					
+					str = str.substring(firstNewLineIndex + 1);
+					firstNewLineIndex = str.indexOf("\n");
+
+					triSurfaceDegree = parseInt(str.substring(0, firstNewLineIndex));
+					firstNewLineIndex = str.indexOf("\n");
+
 					str = str.substring(firstNewLineIndex + 1);
 					firstNewLineIndex = str.indexOf("\n");
 
@@ -673,7 +680,7 @@
 							var point3d =  null;
 							if(isTriangle)
 							{
-								point3d = calcCubicBezierTriangleValue(3, controlPoints, new rst(1 - point.u - point.v, point.v, point.u));
+								point3d = calcCubicBezierTriangleValue(triSurfaceDegree, controlPoints, new rst(1 - point.u - point.v, point.v, point.u));
 							}
 							else
 							{
@@ -1051,7 +1058,7 @@
 	    				var points = [];
 	    				barycentricCoords.forEach(function (rst, index, array)
 	    				{
-	    					points.push(calcCubicBezierTriangleValue(3, controlPoints, rst));
+	    					points.push(calcCubicBezierTriangleValue(triSurfaceDegree, controlPoints, rst));
 	    					uvs.push(new uv(rst.t, rst.s));
 	    				});
 
