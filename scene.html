@@ -149,8 +149,8 @@
 			function parseTriangularSurfaces(str)
 			{
 				//t
-				//2 //surfaces count
-				//10
+				//1 //surfaces count
+				//3
 				//(x, y, z), (x, y, z), ...
 
 				clearScene();
@@ -161,44 +161,45 @@
 				for(var surfacesIndex = 0; surfacesIndex < surfacesCount; ++surfacesIndex)
 				{
 					
-					str = str.substring(firstNewLineIndex + 1);
+					
 					firstNewLineIndex = str.indexOf("\n");
 
+					str = str.substring(firstNewLineIndex + 1);
+					firstNewLineIndex = str.indexOf("\n");
 					triSurfaceDegree = parseInt(str.substring(0, firstNewLineIndex));
-					firstNewLineIndex = str.indexOf("\n");
-
-					str = str.substring(firstNewLineIndex + 1);
-					firstNewLineIndex = str.indexOf("\n");
-
-					var pointsCount = 0;
-					for(let i = 1; i <= triSurfaceDegree + 1; i++)
-						pointsCount += i;
-			
-				
-					var line = str.substring(0, firstNewLineIndex);
 
 					trianglesControlPoints.push([]);
 
-					for(var j = 0; j < pointsCount; ++j)
+					let currentRowPointsCount = 1;
+					for(var i = 0; i < triSurfaceDegree + 1; ++ i)
 					{
-						var firstOpeningBracketIndex = line.indexOf("("); 
-						var firstClosingBracketIndex = line.indexOf(")");
-						var pointStr = line.substring(firstOpeningBracketIndex + 1, firstClosingBracketIndex);
+						str = str.substring(firstNewLineIndex + 1);
+						firstNewLineIndex = str.indexOf("\n");
 
-						var values = pointStr.split(",");
+						var line = str.substring(0, firstNewLineIndex);
 
-						if(values.length != 3)
+						for(var j = 0; j < currentRowPointsCount; ++j)
 						{
-							//do something
-						}
-						else
-						{
-							trianglesControlPoints[surfacesIndex].push(new THREE.Vector3(parseFloat(values[0]),
-																				   	 	 parseFloat(values[1]),
-																				   	 	 parseFloat(values[2])));
-						}
+							var firstOpeningBracketIndex = line.indexOf("("); 
+							var firstClosingBracketIndex = line.indexOf(")");
+							var pointStr = line.substring(firstOpeningBracketIndex + 1, firstClosingBracketIndex);
 
-						line = line.substring(firstClosingBracketIndex + 1);
+							var values = pointStr.split(",");
+
+							if(values.length != 3)
+							{
+								//do something
+							}
+							else
+							{
+								trianglesControlPoints[surfacesIndex].push(new THREE.Vector3(parseFloat(values[0]),
+																				   		  	parseFloat(values[1]),
+																				   		  	parseFloat(values[2])));
+							}
+
+							line = line.substring(firstClosingBracketIndex + 1); 
+						}
+						currentRowPointsCount++;
 					}
 				}
 			}
