@@ -230,14 +230,25 @@
                 update();
             });
 
-            camera.position.x = -60;
-            camera.position.y = 50;
-            camera.position.z = -40;
-            camera.lookAt(new THREE.Vector3(20, 0, 15));
+            camera.position.x = -100;
+            camera.position.y = 0;
+            camera.position.z = 0;
+
+            camera.lookAt(new THREE.Vector3(0, 0, 0));
             camera.updateProjectionMatrix();
             $(cameraControls).on("change", renderScene);
-            cameraControls.target = new THREE.Vector3(20,0,15);
+            cameraControls.target = new THREE.Vector3(0, 0, 0);
 
+            var lightBelow = new THREE.PointLight(0xffffff);
+            lightBelow.position.set(0, -200, 0);
+
+            var lightAbove = new THREE.PointLight(0xffffff);
+            lightAbove.position.set(0, 200, 0);
+
+            var lightLeft = new THREE.PointLight(0xffffff);
+            lightLeft.position.set(-200, 0, 0);
+            var lightRight = new THREE.PointLight(0xffffff);
+            lightRight.position.set(0, 0, 200);
 
             // interactive controls
 			var controls = new function()
@@ -324,7 +335,7 @@
 				update();
 			}));
 
-			var scaleController = gui.add(controls, "scale").min(0.1).max(10).step(0.1).name(getLocalization('scale'));
+			var scaleController = gui.add(controls, "scale").min(0.1).max(100).step(0.1).name(getLocalization('scale'));
 			scaleController.onChange(function(n)
 			{
 				cameraControls.enabled = false;
@@ -905,15 +916,6 @@
 	                	scene.add(createSphere(sourcePoint, 0x00ff00));
 	                	scene.add(createSphere(sourceEndPoint, 0x00ff00));
 	            	}
-
-	                var lightBelow = new THREE.PointLight(0xffffff);
-	                lightBelow.position.set(20, -40, 20);
-	                scene.add(lightBelow);
-
-	                var lightAbove = new THREE.PointLight(0xffffff);
-	                lightAbove.position.set(20, 40, 20);
-	                lightAbove.target = bezierSurface;
-	                scene.add(lightAbove);
 	            }
 
 
@@ -940,23 +942,11 @@
     					{
     						b[bIndex] = bernstein(i, j, n - i -j, rst);
     						bIndex++;
-    						console.log("bIndex : " + bIndex);
     					}
     				}
 
-					// b[3] = bernstein(3, 0, 0, rst); // p[3]=p300
-					// b[1] = bernstein(2, 0, 1, rst); // p[1]=p201 
-					// b[4] = bernstein(2, 1, 0, rst); // p[4]=p210
-    				// b[2] = bernstein(1, 0, 2, rst); // p[2]=p102
-    				// b[9] = bernstein(1, 1, 1, rst); // p[9]=p111
-    				// b[5] = bernstein(1, 2, 0, rst); // p[5]=p120
-    				// b[0] = bernstein(0, 0, 3, rst); // p[0]=p003
-    				// b[8] = bernstein(0, 1, 2, rst); // p[8]=p012
-    				// b[7] = bernstein(0, 2, 1, rst); // p[7]=p021
-    				// b[6] = bernstein(0, 3, 0, rst); // p[6]=p030
-    
     				let x = 0, y = 0, z = 0;
-    				for(let i = 0; i <= 9; i++)
+    				for(let i = 0; i < bIndex; i++)
     				{
       					x += p[i].x * b[i];
       					y += p[i].y * b[i];
@@ -1113,16 +1103,6 @@
 	                	if(i > 0)
 							calculateReflectionsForRarius(-controls.radius * i, edgesInfo, facesInfo, distanceSurfaceGeometry, controlPoints, maxDistance, true);
 					}
-  
-
-	                var lightBelow = new THREE.PointLight(0xffffff);
-                	lightBelow.position.set(20, -40, 20);
-                	scene.add(lightBelow);
-
-                	var lightAbove = new THREE.PointLight(0xffffff);
-                	lightAbove.position.set(20, 40, 20);
-                	lightAbove.target = triangularBezierSurface;
-                	scene.add(lightAbove);
 	    		}
 
 	    		if(trianglesControlPointsScaled.length == 0)
@@ -1139,6 +1119,11 @@
 	    		{
 					drawBezierSurface(points, controls.color);
 				});
+
+				scene.add(lightBelow); 
+	            scene.add(lightAbove);
+				scene.add(lightLeft); 
+	            scene.add(lightRight);
 
 	    		if(controls.drawDebugElements)
 				{
