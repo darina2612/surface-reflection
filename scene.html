@@ -31,7 +31,8 @@
   										['interactiveCamera', new Map([['BG', 'Интерактивна камера'], ['EN', 'Interactive Camera']])],
   										['showAxisHelper', new Map([['BG', 'Покажи помощна КС'], ['EN', 'Show Axis Helper']])],
   										//['showControlPoints', new Map([['BG', 'Покажи контролните точки'], ['EN', 'Show Control Points']])],
-  										['vizualizeAsWireframe', new Map([['BG', 'Покажи мрежа'], ['EN', 'Vizualize As Wireframe']])]	
+  										['vizualizeAsWireframe', new Map([['BG', 'Покажи мрежа'], ['EN', 'Vizualize As Wireframe']])],
+  										['scale', new Map([['BG', 'Мащабиране'], ['EN', 'Scale']])]		
 									  ]);
 
 		function getLocalizationForLanguage(key, language)
@@ -54,7 +55,9 @@
 
 			var triSurfaceDegree = 0;
 			var trianglesControlPoints = [];
+			var trianglesControlPointsScaled = [];
 			var controlPointsArr = [];
+			var controlPointsArrScaled = [];
 
 			var fileInput = document.getElementById('fileInput');
 
@@ -87,8 +90,13 @@
 
 			function clearScene()
 			{
+				scaleController.setValue(1.0);
+
 				controlPointsArr = [];
 				trianglesControlPoints = [];
+
+				controlPointsArrScaled = [];
+				trianglesControlPointsScaled = [];
 			}
 
 			function parseRectangularSurfaces(str)
@@ -246,6 +254,7 @@
 				this.projectCurves = true;
 				this.drawPlane = true;
 				this.lang = 'EN';
+				this.scale = 1.0;
 			}
 
 			function getLocalization(key)
@@ -309,14 +318,23 @@
 			controllers.set("showAxisHelper", gui.add(controls, "showAxisHelper").name(getLocalization('showAxisHelper')).onChange(function(v) {
 				update();
 			}));
-			// controllers.set("showControlPoints", gui.add(controls, "showControlPoints").name(getLocalization('showControlPoints')).onChange(function(visibility)
-			// {
-			// 	update();
-			// })); 
+		
 			controllers.set("vizualizeAsWireframe", gui.add(controls, "vizualizeAsWireframe").name(getLocalization('vizualizeAsWireframe')).onChange(function(v)
 			{
 				update();
 			}));
+
+			var scaleController = gui.add(controls, "scale").min(0.1).max(10).step(0.1).name(getLocalization('scale'));
+			scaleController.onChange(function(n)
+			{
+				cameraControls.enabled = false;
+			});
+			scaleController.onFinishChange(function(n)
+			{
+				cameraControls.enabled = true;
+				handlePlaneScale(n);
+			});
+			controllers.set("scale", scaleController);
 
 			langControl.onFinishChange(function()
 			{
@@ -1107,11 +1125,17 @@
                 	scene.add(lightAbove);
 	    		}
 
-	    		trianglesControlPoints.forEach(function (points, index, array)
+	    		if(trianglesControlPointsScaled.length == 0)
+	    			trianglesControlPointsScaled = trianglesControlPoints;
+
+	    		if(controlPointsArrScaled.length == 0)
+	    			controlPointsArrScaled = controlPointsArr;
+
+	    		trianglesControlPointsScaled.forEach(function (points, index, array)
 	    		{
 	    			drawBezierTriangularSurface(points, controls.color);
 	    		});
-	    		controlPointsArr.forEach(function (points, index, array)
+	    		controlPointsArrScaled.forEach(function (points, index, array)
 	    		{
 					drawBezierSurface(points, controls.color);
 				});
@@ -1121,6 +1145,41 @@
                 	scene.add(createSphere(sourcePoint, 0x00ff00));
                 	scene.add(createSphere(sourceEndPoint, 0x00ff00));
             	}
+	    	}
+
+	    	function getScalePoints(points, scale)
+	    	{
+	    		var result = [];
+
+	    		points.forEach(function (point, index, array)
+				{
+					var id = new THREE.Vector3();
+					result.push(id.addScaledVector(point, scale));
+				});
+
+				return result;
+	    	}
+
+	    	function handlePlaneScale(scale)
+	    	{
+	    		controlPointsArrScaled = []
+	    		controlPointsArr.forEach(function (pointsMesh, index, array)
+	    		{
+	    			var scaledMesh = [];
+	    			pointsMesh.forEach(function (points, index, array)
+	    			{
+	    				scaledMesh.push(getScalePoints(points, scale));
+	    			});
+	    			controlPointsArrScaled.push(scaledMesh);
+				});
+
+				trianglesControlPointsScaled = []
+	    		trianglesControlPoints.forEach(function (points, index, array)
+	    		{
+	    			trianglesControlPointsScaled.push(getScalePoints(points, scale));
+				});
+
+	    		update();
 	    	}
 	    		
             function createSphere(pos, color, name = "", radius = 0.7, )
