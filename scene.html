@@ -268,6 +268,8 @@
 				this.scale = 1.0;
 			}
 
+			cameraControls.enabled = controls.interactiveCamera;
+
 			function getLocalization(key)
 			{
 				return getLocalizationForLanguage(key, controls.lang);
@@ -304,7 +306,7 @@
 				$(document).on("mouseup", function(e)
                 {
                     $(document).off("mouseup");
-                    cameraControls.enabled = true;  // enabling camera controls again
+                    cameraControls.enabled = controls.interactiveCamera;  // enabling camera controls again
                 });
 			}));
 
@@ -315,14 +317,15 @@
 			});
 			radiusController.onFinishChange(function(n)
 			{
-				cameraControls.enabled = true;
+				cameraControls.enabled = controls.interactiveCamera;
 				update();
 				renderScene();
 			});
 
 			controllers.set("reflectionWidth", radiusController);
 
-			controllers.set("interactiveCamera", gui.add(controls, "interactiveCamera").name(getLocalization('interactiveCamera')).onChange(function(v) {
+			controllers.set("interactiveCamera", gui.add(controls, "interactiveCamera").name(getLocalization('interactiveCamera')).onChange(function(v) 
+			{
 				cameraControls.enabled = v;
 			}));
 
@@ -342,7 +345,7 @@
 			});
 			scaleController.onFinishChange(function(n)
 			{
-				cameraControls.enabled = true;
+				cameraControls.enabled = controls.interactiveCamera;
 				handlePlaneScale(n);
 			});
 			controllers.set("scale", scaleController);
