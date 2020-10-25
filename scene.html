@@ -1337,6 +1337,7 @@
 	                var selectedSphere = intersectedObjects[0].object;
 	                if(!selectedSphere.visible)
 	                {
+	                	cameraControls.enabled = controls.interactiveCamera;
 	                	console.log("intersected sphere invisible");
 	                    return;
 	                }
@@ -1353,6 +1354,7 @@
 	            	}
 	            	else
 	            	{
+	            		cameraControls.enabled = controls.interactiveCamera;
 	            		console.log("No interactions");
 	            		return;
 	            	}
@@ -1362,7 +1364,7 @@
                 {
                     $(document).off("mousemove");
                     $(document).off("mouseup");
-                    cameraControls.enabled = true;  // enabling camera controls again
+                    cameraControls.enabled = controls.interactiveCamera;  // enabling camera controls again
                 });
             }
 
